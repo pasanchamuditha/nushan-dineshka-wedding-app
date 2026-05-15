@@ -13,7 +13,11 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(git init:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"Initial commit: Wedding seating lookup app:*)"
+      "Bash(git commit -m \"Initial commit: Wedding seating lookup app:*)",
+      "Bash(git remote:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(git commit -m \"Fix mobile responsiveness, update date to 18 May, remove upload button:*)"
     ]
   }
 }

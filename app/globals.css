@@ -10,6 +10,7 @@
 
 * {
   box-sizing: border-box;
+  max-width: 100%;
 }
 
 body {
@@ -17,6 +18,8 @@ body {
   background: linear-gradient(150deg, #fffef9 0%, #fdf8ef 35%, #fffbf2 65%, #fdf8ef 100%);
   min-height: 100vh;
   font-family: Georgia, Cambria, 'Times New Roman', serif;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* ─── Animations ─────────────────────────────────────────────── */
