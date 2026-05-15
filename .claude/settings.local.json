@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "Read(//private/tmp/xlsx-test/**)",
+      "Bash(npx create-next-app@latest . --typescript --tailwind --eslint --app --no-src-dir --import-alias \"@/*\" --yes)",
+      "Bash(npm install:*)",
+      "Bash(npm run:*)",
+      "Bash(nvm ls:*)",
+      "Bash(export NVM_DIR=\"$HOME/.nvm\")",
+      "Bash(source \"$NVM_DIR/nvm.sh\")",
+      "Bash(nvm use:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"Initial commit: Wedding seating lookup app:*)"
+    ]
+  }
+}
