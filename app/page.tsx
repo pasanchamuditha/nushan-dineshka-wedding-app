@@ -586,7 +586,7 @@ function BandSection() {
           Hope Band SL
         </h3>
         <p className="text-amber-600/70 text-xs mt-1" style={{ fontFamily: "'Lato', sans-serif", letterSpacing: "0.08em" }}>
-          Performing live at Nushan &amp; Dineshka's wedding ✦
+          Performing live at Nushan &amp; Dineshka&apos;s wedding ✦
         </p>
       </div>
 
