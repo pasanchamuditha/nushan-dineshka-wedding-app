@@ -202,3 +202,22 @@ body {
   animation: shimmerGold 1.5s infinite;
   border-radius: 8px;
 }
+
+/* ─── Location modal ──────────────────────────────────────────── */
+@keyframes slideUpModal {
+  from { transform: translateY(60px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+
+@keyframes pingSlowPulse {
+  0%, 100% { transform: scale(1);    opacity: 0.35; }
+  60%       { transform: scale(1.65); opacity: 0;    }
+}
+
+.animate-slide-up-modal {
+  animation: slideUpModal 0.38s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+.animate-ping-slow {
+  animation: pingSlowPulse 2.4s ease-in-out infinite;
+}

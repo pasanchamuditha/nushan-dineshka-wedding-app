@@ -173,6 +173,129 @@ function NoResult({ query }: { query: string }) {
   );
 }
 
+// ─── Location modal ───────────────────────────────────────────────────────────
+const GMAPS_LINK = "https://maps.app.goo.gl/moqzTwRBUERuzCvW8";
+
+function LocationModal({ onClose }: { onClose: () => void }) {
+  // Close on backdrop click
+  const onBackdrop = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  // Prevent body scroll while modal open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center"
+      style={{ background: "rgba(30,20,10,0.55)", backdropFilter: "blur(4px)" }}
+      onClick={onBackdrop}
+    >
+      <div
+        className="w-full sm:max-w-lg mx-0 sm:mx-4 animate-slide-up-modal"
+        style={{ maxHeight: "92vh" }}
+      >
+        {/* Card */}
+        <div className="rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl" style={{ background: "#fffdf5", border: "1px solid rgba(201,168,76,0.3)" }}>
+
+          {/* Handle bar (mobile) */}
+          <div className="flex justify-center pt-3 pb-1 sm:hidden">
+            <div className="w-10 h-1 rounded-full" style={{ background: "rgba(201,168,76,0.4)" }} />
+          </div>
+
+          {/* Header */}
+          <div className="flex items-center justify-between px-5 pt-3 pb-4" style={{ borderBottom: "1px solid rgba(201,168,76,0.2)" }}>
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ background: "linear-gradient(135deg,#c9a84c,#a8862e)", boxShadow: "0 3px 10px rgba(180,140,40,0.35)" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-stone-800 text-sm leading-tight" style={{ fontFamily: "'Playfair Display', serif" }}>Centauria Lake Resort</p>
+                <p className="text-amber-600/70 text-xs" style={{ fontFamily: "'Lato', sans-serif" }}>Belihuloya, Sri Lanka</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-amber-50" style={{ color: "#a08030" }} aria-label="Close">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Map iframe */}
+          <div className="w-full relative" style={{ height: "260px" }}>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3965.5699651334317!2d80.85353937570434!3d6.320077625492375!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae6aa7dbe0ccee7%3A0x3c8e9281627d618c!2sCentauria%20Lake%20Resort!5e0!3m2!1sen!2slk!4v1778907079959!5m2!1sen!2slk"
+              width="100%"
+              height="100%"
+              style={{ border: 0, display: "block" }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Centauria Lake Resort"
+            />
+          </div>
+
+          {/* Open in Maps CTA */}
+          <div className="p-4">
+            <div className="rounded-2xl p-3 mb-3 flex items-start gap-3" style={{ background: "rgba(201,168,76,0.08)", border: "1px solid rgba(201,168,76,0.22)" }}>
+              <span className="text-lg shrink-0 mt-0.5">📍</span>
+              <p className="text-stone-600 text-xs leading-relaxed" style={{ fontFamily: "'Lato', sans-serif" }}>
+                Tap <strong className="text-stone-800">Open in Google Maps</strong> to get turn-by-turn directions straight to the venue on your phone.
+              </p>
+            </div>
+            <a
+              href={GMAPS_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl font-semibold text-white text-sm transition-opacity active:opacity-80"
+              style={{ background: "linear-gradient(135deg,#c9a84c 0%,#a8862e 100%)", boxShadow: "0 4px 16px rgba(180,140,40,0.38)", fontFamily: "'Lato', sans-serif", letterSpacing: "0.04em" }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3"/>
+              </svg>
+              Open in Google Maps
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Floating location button ─────────────────────────────────────────────────
+function LocationFAB({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="View venue location"
+      className="fixed bottom-6 right-5 z-40 flex flex-col items-center gap-1 group"
+    >
+      {/* Pulse ring */}
+      <span className="absolute inset-0 rounded-full animate-ping-slow opacity-30" style={{ background: "#c9a84c", borderRadius: "50%" }} aria-hidden />
+      {/* Button */}
+      <span
+        className="relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 group-hover:scale-105"
+        style={{ background: "linear-gradient(135deg,#c9a84c 0%,#8b6914 100%)", boxShadow: "0 6px 20px rgba(180,140,40,0.45)" }}
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+          <circle cx="12" cy="10" r="3"/>
+        </svg>
+      </span>
+      <span className="relative text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,253,240,0.95)", color: "#8b6914", fontFamily: "'Lato', sans-serif", boxShadow: "0 2px 8px rgba(180,140,40,0.18)", fontSize: "10px", letterSpacing: "0.03em" }}>
+        Venue
+      </span>
+    </button>
+  );
+}
+
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
   return (
@@ -204,6 +327,7 @@ export default function WeddingSeatingApp() {
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [results, setResults]     = useState<GuestRecord[]>([]);
   const [selected, setSelected]   = useState<GuestRecord | null>(null);
+  const [showMap, setShowMap]     = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -243,6 +367,8 @@ export default function WeddingSeatingApp() {
   return (
     <div className="relative min-h-screen overflow-x-hidden">
       <FloatingPetals />
+      {showMap && <LocationModal onClose={() => setShowMap(false)} />}
+      <LocationFAB onClick={() => setShowMap(true)} />
 
       <div className="relative z-10 w-full max-w-lg mx-auto px-4 py-8">
 
