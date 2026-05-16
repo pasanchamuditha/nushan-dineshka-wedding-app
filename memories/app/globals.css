@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* { box-sizing: border-box; max-width: 100%; }
+
+body {
+  background: linear-gradient(150deg, #fffef9 0%, #fdf8ef 40%, #fff9f5 70%, #fdf8ef 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+  font-family: Georgia, Cambria, serif;
+}
+
+/* ── Gold shimmer text ───────────────── */
+.gold-shimmer {
+  background: linear-gradient(90deg, #b8860b 0%, #d4a843 20%, #f0d080 50%, #d4a843 80%, #b8860b 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmerGold 3s linear infinite;
+}
+
+/* ── Glass cards ─────────────────────── */
+.glass {
+  background: rgba(255, 253, 245, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(212, 185, 100, 0.28);
+  box-shadow: 0 8px 32px rgba(170, 140, 60, 0.1), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+/* ── Hero gradient ───────────────────── */
+.hero-bg {
+  background: linear-gradient(180deg,
+    rgba(255,248,230,0.95) 0%,
+    rgba(253,248,239,0.98) 100%);
+}
+
+/* ── Divider ornament ────────────────── */
+.divider {
+  display: flex; align-items: center; gap: 10px; color: #c9a84c;
+}
+.divider::before, .divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: linear-gradient(90deg, transparent, #c9a84c80, transparent);
+}
+
+/* ── Animations ──────────────────────── */
+@keyframes shimmerGold {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+@keyframes fadeUp {
+  from { transform: translateY(24px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1);    }
+}
+@keyframes petal {
+  0%   { transform: translateX(0) translateY(0) rotate(0deg);    opacity: 0; }
+  10%  { opacity: 0.6; }
+  90%  { opacity: 0.3; }
+  100% { transform: translateX(60px) translateY(100vh) rotate(360deg); opacity: 0; }
+}
+@keyframes pulse-ring {
+  0%, 100% { transform: scale(1);    opacity: 0.4; }
+  60%       { transform: scale(1.7); opacity: 0;   }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes slideUp {
+  from { transform: translateY(40px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes toastIn {
+  from { transform: translateY(80px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
+}
+@keyframes toastOut {
+  from { transform: translateY(0);    opacity: 1; }
+  to   { transform: translateY(80px); opacity: 0; }
+}
+
+.animate-fade-up    { animation: fadeUp  0.5s ease-out forwards; }
+.animate-fade-in    { animation: fadeIn  0.4s ease-out forwards; }
+.animate-slide-up   { animation: slideUp 0.4s cubic-bezier(0.32,0.72,0,1) forwards; }
+.animate-toast-in   { animation: toastIn  0.35s ease-out forwards; }
+.animate-toast-out  { animation: toastOut 0.35s ease-in  forwards; }
+
+.petal {
+  position: fixed; pointer-events: none;
+  animation: petal linear infinite; opacity: 0; z-index: 0;
+}
+
+/* ── Camera preview ──────────────────── */
+.preview-ring {
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.5), 0 8px 32px rgba(0,0,0,0.12);
+}
+
+/* ── Photo grid ──────────────────────── */
+.photo-grid {
+  columns: 2;
+  column-gap: 10px;
+}
+@media (min-width: 480px) { .photo-grid { columns: 3; } }
+@media (min-width: 768px) { .photo-grid { columns: 4; } }
+
+.photo-item {
+  break-inside: avoid;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.photo-item:hover { transform: scale(1.02); box-shadow: 0 8px 24px rgba(0,0,0,0.15); }
+.photo-item img { width: 100%; display: block; }
+
+/* ── Scrollbar ───────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: rgba(255,252,235,0.5); }
+::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.4); border-radius: 3px; }
