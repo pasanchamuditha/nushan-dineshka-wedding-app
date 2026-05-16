@@ -198,9 +198,9 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
     setError(null);
     try {
       const compressed = await compressImage(preview);
-      const res  = await fetch(SCRIPT_URL, {
+      const res  = await fetch("/api/upload", {
         method:  "POST",
-        headers: { "Content-Type": "text/plain" },
+        headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ image: compressed, mimeType: "image/jpeg" }),
       });
       const data = await res.json();
@@ -342,7 +342,7 @@ export default function MemoriesPage() {
 
   const fetchPhotos = useCallback(async () => {
     try {
-      const res  = await fetch(SCRIPT_URL);
+      const res  = await fetch("/api/photos");
       const data = await res.json();
       if (data.success && Array.isArray(data.photos)) setPhotos(data.photos);
     } catch { /* silent */ } finally {
