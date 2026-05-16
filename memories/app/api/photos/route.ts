@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server";
 
-const SCRIPT_URL = process.env.APPS_SCRIPT_URL;
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVSpucQuZf6cBABS90Q9dLvFZh0P7W-6y52cEPYONpF3w52ydiJqIn9u-9SwMga8DJ/exec";
 
 export async function GET() {
-  if (!SCRIPT_URL) {
-    return NextResponse.json({ success: false, photos: [], error: "APPS_SCRIPT_URL not configured" });
-  }
   try {
     const res  = await fetch(SCRIPT_URL, { next: { revalidate: 0 } });
     const data = await res.json();
