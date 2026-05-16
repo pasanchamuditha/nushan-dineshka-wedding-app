@@ -814,16 +814,31 @@ export default function WeddingSeatingApp() {
         {/* ── Stats — shown below results only when not actively searching ── */}
         {!hasResult && (
           <div className="flex justify-center gap-4 mt-6">
-            {[
-              { label: "Tables", value: "17", icon: "🪑" },
-              { label: "Guests", value: "150+", icon: "👥" },
-            ].map(({ label, value, icon }) => (
-              <div key={label} className="glass-card rounded-2xl px-5 py-3 text-center flex-1 max-w-[130px]">
-                <div className="text-base">{icon}</div>
-                <div className="text-xl font-bold text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>{value}</div>
-                <div className="text-amber-600/70 text-xs uppercase tracking-wider" style={{ fontFamily: "'Lato', sans-serif" }}>{label}</div>
+            {/* Tables card — SVG table icon */}
+            <div className="glass-card rounded-2xl px-5 py-3 text-center flex-1 max-w-[130px]">
+              <div className="flex justify-center mb-0.5">
+                <svg width="22" height="20" viewBox="0 0 22 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Table top */}
+                  <rect x="1" y="3" width="20" height="4" rx="2" fill="#c9a84c"/>
+                  {/* Left leg */}
+                  <rect x="3" y="7" width="2.5" height="10" rx="1.2" fill="#c9a84c"/>
+                  {/* Right leg */}
+                  <rect x="16.5" y="7" width="2.5" height="10" rx="1.2" fill="#c9a84c"/>
+                  {/* Foot left */}
+                  <rect x="1.5" y="16" width="5" height="2" rx="1" fill="#a8862e"/>
+                  {/* Foot right */}
+                  <rect x="15.5" y="16" width="5" height="2" rx="1" fill="#a8862e"/>
+                </svg>
               </div>
-            ))}
+              <div className="text-xl font-bold text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>17</div>
+              <div className="text-amber-600/70 text-xs uppercase tracking-wider" style={{ fontFamily: "'Lato', sans-serif" }}>Tables</div>
+            </div>
+            {/* Guests card */}
+            <div className="glass-card rounded-2xl px-5 py-3 text-center flex-1 max-w-[130px]">
+              <div className="text-base">👥</div>
+              <div className="text-xl font-bold text-stone-800" style={{ fontFamily: "'Playfair Display', serif" }}>150+</div>
+              <div className="text-amber-600/70 text-xs uppercase tracking-wider" style={{ fontFamily: "'Lato', sans-serif" }}>Guests</div>
+            </div>
           </div>
         )}
 
