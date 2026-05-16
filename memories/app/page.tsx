@@ -4,6 +4,24 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVSpucQuZf6cBABS90Q9dLvFZh0P7W-6y52cEPYONpF3w52ydiJqIn9u-9SwMga8DJ/exec";
 
+// Compress image to max 1200px wide, JPEG 0.75 quality — reduces 5MB → ~200KB
+function compressImage(dataUrl: string): Promise<string> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      if (height > MAX) { width = Math.round((width * MAX) / height); height = MAX; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL("image/jpeg", 0.75));
+    };
+    img.src = dataUrl;
+  });
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Photo {
   id: string;
@@ -166,7 +184,7 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
 
   const handleFile = (f: File) => {
     if (!f.type.startsWith("image/")) { setError("Please select an image file."); return; }
-    if (f.size > 15 * 1024 * 1024) { setError("Image too large. Max 15 MB."); return; }
+    if (f.size > 50 * 1024 * 1024) { setError("Image too large. Max 50 MB."); return; }
     setError(null);
     setFile(f);
     const reader = new FileReader();
@@ -179,10 +197,11 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
     setUploading(true);
     setError(null);
     try {
+      const compressed = await compressImage(preview);
       const res  = await fetch(SCRIPT_URL, {
         method:  "POST",
         headers: { "Content-Type": "text/plain" },
-        body:    JSON.stringify({ image: preview, mimeType: file.type }),
+        body:    JSON.stringify({ image: compressed, mimeType: "image/jpeg" }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Upload failed");
