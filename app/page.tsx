@@ -590,10 +590,89 @@ function MusicWave() {
   );
 }
 
+const MEMORIES_URL = "https://nushan-dineshka-wedding-app-1loy.vercel.app/";
+
+function MemoriesPopup() {
+  const [visible, setVisible] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    // Show after 6 seconds, only once per session
+    const shown = sessionStorage.getItem("ndw_popup_shown");
+    if (shown) return;
+    const id = setTimeout(() => {
+      setVisible(true);
+      sessionStorage.setItem("ndw_popup_shown", "1");
+    }, 6000);
+    return () => clearTimeout(id);
+  }, []);
+
+  if (dismissed || !visible) return null;
+
+  return (
+    <div
+      className="fixed bottom-24 left-1/2 z-50 w-[calc(100vw-2rem)] max-w-sm animate-fade-in"
+      style={{ transform: "translateX(-50%)" }}
+    >
+      <div
+        className="relative rounded-2xl px-4 py-4 shadow-2xl"
+        style={{
+          background: "linear-gradient(135deg,rgba(255,252,235,0.98),rgba(255,244,200,0.97))",
+          border: "1px solid rgba(201,168,76,0.5)",
+          boxShadow: "0 8px 32px rgba(180,140,40,0.28)",
+        }}
+      >
+        {/* Close */}
+        <button
+          onClick={() => setDismissed(true)}
+          className="absolute top-2.5 right-2.5 w-6 h-6 rounded-full flex items-center justify-center"
+          style={{ background: "rgba(201,168,76,0.15)", color: "#8b6914" }}
+          aria-label="Dismiss"
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+
+        <div className="flex items-start gap-3 pr-4">
+          <span style={{ fontSize: "26px", lineHeight: 1, flexShrink: 0 }}>📸</span>
+          <div>
+            <p className="font-bold text-stone-800 text-sm leading-snug" style={{ fontFamily: "'Playfair Display', serif" }}>
+              Capture & Vote for the Best Memory!
+            </p>
+            <p className="text-amber-700/80 text-xs mt-1 leading-relaxed" style={{ fontFamily: "'Lato', sans-serif" }}>
+              Share your photos from today&apos;s celebration and vote for your favourite. The most-loved photo wins the{" "}
+              <span className="font-semibold text-amber-800">Best Memory of the Day 👑</span> award!
+            </p>
+            <a
+              href={MEMORIES_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setDismissed(true)}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-white text-xs font-semibold active:scale-95 transition-transform"
+              style={{
+                background: "linear-gradient(135deg,#c9a84c,#8b6914)",
+                boxShadow: "0 3px 12px rgba(180,140,40,0.4)",
+                fontFamily: "'Lato', sans-serif",
+              }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                <circle cx="12" cy="13" r="4"/>
+              </svg>
+              Open Memories App
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function MemoriesFAB() {
   return (
     <a
-      href="https://nushan-dineshka-wedding-app-1loy.vercel.app/"
+      href={MEMORIES_URL}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Share your wedding memories"
@@ -846,6 +925,7 @@ export default function WeddingSeatingApp() {
         <SeatingMapModal tableNumber={selected.tableNumber} onClose={() => setShowSeatingMap(false)} />
       )}
       <BackgroundMusic />
+      <MemoriesPopup />
       <MemoriesFAB />
       <LocationFAB onClick={() => setShowMap(true)} />
 
