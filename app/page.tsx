@@ -489,6 +489,124 @@ function LocationModal({ onClose }: { onClose: () => void }) {
 
 // ─── Floating location button ─────────────────────────────────────────────────
 // ─── Memories FAB ─────────────────────────────────────────────────────────────
+// ─── Background music ─────────────────────────────────────────────────────────
+function BackgroundMusic() {
+  const audioRef   = useRef<HTMLAudioElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [shown,   setShown]   = useState(false);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    // Fade volume in smoothly
+    const fadeIn = () => {
+      audio.volume = 0;
+      let v = 0;
+      const id = setInterval(() => {
+        v = Math.min(v + 0.02, 0.3);
+        audio.volume = v;
+        if (v >= 0.3) clearInterval(id);
+      }, 120);
+    };
+
+    // Attempt silent autoplay immediately
+    audio.play()
+      .then(() => { setPlaying(true); fadeIn(); })
+      .catch(() => {
+        // Blocked — start on very first user interaction
+        const onInteract = () => {
+          audio.play()
+            .then(() => { setPlaying(true); fadeIn(); })
+            .catch(() => {});
+        };
+        window.addEventListener("touchstart", onInteract, { once: true, passive: true });
+        window.addEventListener("click",      onInteract, { once: true });
+      });
+
+    // Show FAB after a short delay
+    const t = setTimeout(() => setShown(true), 800);
+    return () => clearTimeout(t);
+  }, []);
+
+  const toggle = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (playing) {
+      audio.pause();
+      setPlaying(false);
+    } else {
+      audio.volume = 0.3;
+      audio.play().then(() => setPlaying(false)).catch(() => {});
+      setPlaying(true);
+    }
+  };
+
+  return (
+    <>
+      <audio ref={audioRef} src="/marry-you.mp3" loop preload="auto" />
+
+      <button
+        onClick={toggle}
+        aria-label={playing ? "Pause background music" : "Play background music"}
+        className="fixed right-5 z-40 flex flex-col items-center gap-1 group"
+        style={{
+          bottom: "196px",
+          opacity:   shown ? 1 : 0,
+          transform: shown ? "scale(1)" : "scale(0.7)",
+          transition: "opacity 0.5s ease, transform 0.5s ease",
+        }}
+      >
+        {/* Pulse ring (only when playing) */}
+        {playing && (
+          <span
+            className="absolute inset-0 rounded-full animate-ping-slow"
+            style={{ background: "#d4a8c8", opacity: 0.28 }}
+            aria-hidden
+          />
+        )}
+        {/* Button */}
+        <span
+          className="relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 group-hover:scale-105"
+          style={{
+            background: "linear-gradient(135deg,#d4a8c8 0%,#9b5888 100%)",
+            boxShadow: "0 6px 20px rgba(155,88,136,0.45)",
+          }}
+        >
+          {playing ? (
+            // Pause icon
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+              <rect x="6"  y="4" width="4" height="16" rx="1"/>
+              <rect x="14" y="4" width="4" height="16" rx="1"/>
+            </svg>
+          ) : (
+            // Music note icon
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 18V5l12-2v13"/>
+              <circle cx="6"  cy="18" r="3"/>
+              <circle cx="18" cy="16" r="3"/>
+            </svg>
+          )}
+        </span>
+        {/* Label */}
+        <span
+          className="relative text-xs font-semibold px-2 py-0.5 rounded-full"
+          style={{
+            background: "rgba(255,253,240,0.95)",
+            color: "#9b5888",
+            fontFamily: "'Lato', sans-serif",
+            boxShadow: "0 2px 8px rgba(155,88,136,0.18)",
+            fontSize: "10px",
+            letterSpacing: "0.03em",
+          }}
+        >
+          {playing ? "Playing" : "Music"}
+        </span>
+      </button>
+    </>
+  );
+}
+
 function MemoriesFAB() {
   return (
     <a
@@ -744,6 +862,7 @@ export default function WeddingSeatingApp() {
       {showSeatingMap && selected && (
         <SeatingMapModal tableNumber={selected.tableNumber} onClose={() => setShowSeatingMap(false)} />
       )}
+      <BackgroundMusic />
       <MemoriesFAB />
       <LocationFAB onClick={() => setShowMap(true)} />
 
