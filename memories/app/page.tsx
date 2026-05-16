@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwVSpucQuZf6cBABS90Q9dLvFZh0P7W-6y52cEPYONpF3w52ydiJqIn9u-9SwMga8DJ/exec";
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Photo {
   id: string;
@@ -177,9 +179,9 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
     setUploading(true);
     setError(null);
     try {
-      const res  = await fetch("/api/upload", {
+      const res  = await fetch(SCRIPT_URL, {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "text/plain" },
         body:    JSON.stringify({ image: preview, mimeType: file.type }),
       });
       const data = await res.json();
@@ -321,7 +323,7 @@ export default function MemoriesPage() {
 
   const fetchPhotos = useCallback(async () => {
     try {
-      const res  = await fetch("/api/photos");
+      const res  = await fetch(SCRIPT_URL);
       const data = await res.json();
       if (data.success && Array.isArray(data.photos)) setPhotos(data.photos);
     } catch { /* silent */ } finally {
