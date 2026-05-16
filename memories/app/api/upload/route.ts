@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export const config = { api: { bodyParser: { sizeLimit: "120mb" } } };
 
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbw-jOETj7_Qow-lz4rsLvBfowZD1FmzxHfw80iJL29_1g360BAT1kW9QYuTmbRd7Ag/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-Wlsr9ttU_KWEuHDIKWj_Q8SWle0X3Zye5ZQHKws2yOmvQTzku1FDhyOLqde4FqGs/exec";
 
 export async function POST(req: NextRequest) {
   try {
