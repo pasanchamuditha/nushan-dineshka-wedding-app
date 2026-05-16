@@ -117,11 +117,20 @@ function PhotoCard({
   onOpenLightbox: () => void;
   onVote: (reaction: ReactionKey) => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const total = totalVotes(photo.votes);
+
+  // Close picker when clicking outside
+  useEffect(() => {
+    if (!pickerOpen) return;
+    const close = () => setPickerOpen(false);
+    window.addEventListener("click", close, { once: true, capture: true });
+    return () => window.removeEventListener("click", close, { capture: true });
+  }, [pickerOpen]);
 
   return (
     <div
-      className="photo-item animate-fade-in flex flex-col overflow-hidden rounded-xl"
+      className="photo-item animate-fade-in relative overflow-hidden rounded-xl"
       style={{ animationDelay: `${Math.min(index * 0.05, 0.4)}s`, border: isMostLoved && total > 0 ? "2px solid #c9a84c" : "none" }}
     >
       {/* Most Loved badge */}
@@ -140,45 +149,87 @@ function PhotoCard({
         src={photo.thumbnailUrl}
         alt={`Wedding memory ${index + 1}`}
         loading="lazy"
-        className="w-full cursor-pointer"
-        style={{ display: "block" }}
+        className="w-full cursor-pointer block"
         onClick={onOpenLightbox}
         onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
       />
 
-      {/* Reaction bar */}
-      <div
-        className="flex items-center justify-around py-1.5 px-1"
-        style={{
-          background: "rgba(255,253,240,0.97)",
-          borderTop: "1px solid rgba(201,168,76,0.15)",
-        }}
-      >
-        {REACTIONS.map(({ key, emoji }) => {
-          const count   = photo.votes?.[key] ?? 0;
-          const isMyVote = myVote === key;
-          return (
-            <button
-              key={key}
-              onClick={(e) => { e.stopPropagation(); onVote(key); }}
-              className="flex items-center gap-0.5 px-2 py-0.5 rounded-full transition-all active:scale-90"
-              style={{
-                background:  isMyVote ? "rgba(201,168,76,0.22)" : "transparent",
-                border:      isMyVote ? "1.5px solid rgba(201,168,76,0.55)" : "1.5px solid transparent",
-                fontFamily:  "'Lato', sans-serif",
-              }}
-              aria-label={`React with ${emoji}`}
-            >
-              <span style={{ fontSize: "14px" }}>{emoji}</span>
-              <span
-                style={{ fontSize: "11px", color: isMyVote ? "#8b6914" : "#a07840", fontWeight: isMyVote ? 700 : 400, lineHeight: 1 }}
-              >
-                {count > 0 ? count : ""}
-              </span>
-            </button>
-          );
-        })}
+      {/* Vote button overlay (bottom-left) */}
+      <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
+        {/* Reaction picker popup */}
+        {pickerOpen && (
+          <div
+            className="absolute bottom-full left-0 mb-1.5 flex items-center gap-1 px-2 py-1.5 rounded-2xl animate-fade-in"
+            style={{
+              background: "rgba(255,253,240,0.97)",
+              border: "1px solid rgba(201,168,76,0.4)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.18)",
+              backdropFilter: "blur(8px)",
+            }}
+          >
+            {REACTIONS.map(({ key, emoji, label }) => {
+              const count    = photo.votes?.[key] ?? 0;
+              const isMyVote = myVote === key;
+              return (
+                <button
+                  key={key}
+                  onClick={() => { onVote(key); setPickerOpen(false); }}
+                  className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all active:scale-90"
+                  style={{
+                    background: isMyVote ? "rgba(201,168,76,0.25)" : "transparent",
+                    border: isMyVote ? "1.5px solid rgba(201,168,76,0.6)" : "1.5px solid transparent",
+                    minWidth: "36px",
+                  }}
+                  aria-label={label}
+                >
+                  <span style={{ fontSize: "20px", lineHeight: 1.1 }}>{emoji}</span>
+                  <span style={{ fontSize: "10px", color: isMyVote ? "#8b6914" : "#a07840", fontWeight: isMyVote ? 700 : 400, fontFamily: "'Lato', sans-serif", lineHeight: 1 }}>
+                    {count > 0 ? count : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Vote / reacted button */}
+        <button
+          onClick={() => setPickerOpen((o) => !o)}
+          className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold active:scale-95 transition-all"
+          style={{
+            background: myVote ? "rgba(201,168,76,0.88)" : "rgba(20,15,5,0.55)",
+            color: myVote ? "#3b2700" : "#fff",
+            backdropFilter: "blur(6px)",
+            border: myVote ? "1px solid rgba(201,168,76,0.9)" : "1px solid rgba(255,255,255,0.18)",
+            fontFamily: "'Lato', sans-serif",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+          }}
+        >
+          {myVote ? (
+            <>
+              <span style={{ fontSize: "12px" }}>{REACTIONS.find(r => r.key === myVote)?.emoji}</span>
+              <span>Voted</span>
+            </>
+          ) : (
+            <>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" style={{ opacity: 0.85 }}>
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+              </svg>
+              <span>Vote</span>
+            </>
+          )}
+        </button>
       </div>
+
+      {/* Total reaction count (bottom-right) */}
+      {total > 0 && (
+        <div
+          className="absolute bottom-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs"
+          style={{ background: "rgba(20,15,5,0.55)", color: "#fff", backdropFilter: "blur(6px)", fontFamily: "'Lato', sans-serif", fontSize: "11px" }}
+        >
+          {REACTIONS.filter(r => (photo.votes?.[r.key] ?? 0) > 0).map(r => r.emoji).join("")} {total}
+        </div>
+      )}
     </div>
   );
 }
