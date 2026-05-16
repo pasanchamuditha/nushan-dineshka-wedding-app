@@ -504,7 +504,7 @@ export default function MemoriesPage() {
     // Optimistic UI update
     setPhotos((prev) => prev.map((p) => {
       if (p.id !== photoId) return p;
-      const v = { h: 0, f: 0, w: 0, ...p.votes };
+      const v = { h: 0, f: 0, w: 0, l: 0, c: 0, ...p.votes };
       if (prevReaction) v[prevReaction] = Math.max(0, v[prevReaction] - 1);
       if (nextReaction) v[nextReaction]++;
       return { ...p, votes: v };
