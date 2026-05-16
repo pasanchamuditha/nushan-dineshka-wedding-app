@@ -359,12 +359,42 @@ function Gallery({
   );
 }
 
+// ─── Chunked video upload helper ──────────────────────────────────────────────
+const CHUNK_CHARS = 2_500_000; // ~1.875 MB binary per chunk, safe under Vercel 4.5 MB limit
+
+async function uploadVideoChunked(
+  base64Full: string,
+  mimeType: string,
+  onProgress: (pct: number) => void,
+): Promise<{ fileId: string; fileName: string; thumbnailUrl: string; type: string }> {
+  const pure     = base64Full.replace(/^data:[^;]+;base64,/, "");
+  const uploadId = Date.now().toString(36) + Math.random().toString(36).slice(2);
+  const chunks: string[] = [];
+  for (let i = 0; i < pure.length; i += CHUNK_CHARS) chunks.push(pure.slice(i, i + CHUNK_CHARS));
+
+  let last: Record<string, unknown> = {};
+  for (let i = 0; i < chunks.length; i++) {
+    onProgress(Math.round((i / chunks.length) * 92) + 4);
+    const res  = await fetch("/api/upload", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ isChunked: true, uploadId, chunk: chunks[i], chunkIndex: i, totalChunks: chunks.length, mimeType }),
+    });
+    last = await res.json();
+    if (!last.success && last.status !== "chunk_received") throw new Error((last.error as string) || "Chunk upload failed");
+  }
+  onProgress(100);
+  if (!last.fileId) throw new Error((last.error as string) || "Assembly failed");
+  return last as { fileId: string; fileName: string; thumbnailUrl: string; type: string };
+}
+
 // ─── Upload modal ─────────────────────────────────────────────────────────────
 function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded: (p: Photo) => void }) {
   const [mode,      setMode]      = useState<"photo" | "video">("photo");
   const [preview,   setPreview]   = useState<string | null>(null);
   const [file,      setFile]      = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [progress,  setProgress]  = useState(0);
   const [error,     setError]     = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -393,26 +423,30 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
 
   const upload = async () => {
     if (!file || !preview) return;
-    setUploading(true); setError(null);
+    setUploading(true); setError(null); setProgress(0);
     try {
-      let body: object;
       if (mode === "photo") {
+        setProgress(30);
         const compressed = await compressImage(preview);
-        body = { image: compressed, mimeType: "image/jpeg" };
+        setProgress(60);
+        const res  = await fetch("/api/upload", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ image: compressed, mimeType: "image/jpeg" }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || "Upload failed");
+        setProgress(100);
+        onUploaded({ id: data.fileId, name: data.fileName, thumbnailUrl: data.thumbnailUrl, createdAt: new Date().toISOString(), type: "photo" });
       } else {
-        body = { video: preview, mimeType: file.type };
+        // Video: chunked upload
+        setProgress(4);
+        const result = await uploadVideoChunked(preview, file.type, setProgress);
+        onUploaded({ id: result.fileId, name: result.fileName, thumbnailUrl: result.thumbnailUrl, createdAt: new Date().toISOString(), type: "video" });
       }
-      const res  = await fetch("/api/upload", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Upload failed");
-      onUploaded({ id: data.fileId, name: data.fileName, thumbnailUrl: data.thumbnailUrl, createdAt: new Date().toISOString(), type: data.type ?? mode });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
-    } finally { setUploading(false); }
+    } finally { setUploading(false); setProgress(0); }
   };
 
   return (
@@ -507,6 +541,23 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
               className="hidden"
               onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
             />
+            {uploading && (
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1" style={{ color: "#8b6914", fontFamily: "'Lato', sans-serif" }}>
+                  <span>{mode === "video" ? "Uploading video…" : "Uploading…"}</span>
+                  <span>{progress}%</span>
+                </div>
+                <div className="w-full rounded-full overflow-hidden" style={{ height: "6px", background: "rgba(201,168,76,0.18)" }}>
+                  <div className="h-full rounded-full transition-all duration-300" style={{ width: `${progress}%`, background: "linear-gradient(90deg,#c9a84c,#8b6914)" }} />
+                </div>
+                {mode === "video" && progress < 96 && (
+                  <p className="text-xs text-center mt-1" style={{ color: "#a08030", fontFamily: "'Lato', sans-serif" }}>Sending in chunks — please keep this screen open</p>
+                )}
+                {mode === "video" && progress >= 96 && (
+                  <p className="text-xs text-center mt-1" style={{ color: "#a08030", fontFamily: "'Lato', sans-serif" }}>Assembling video on server…</p>
+                )}
+              </div>
+            )}
             {error && <p className="text-red-600 text-sm text-center mb-3" style={{ fontFamily: "'Lato', sans-serif" }}>⚠ {error}</p>}
             <div className="flex gap-3">
               {preview && !uploading && (
