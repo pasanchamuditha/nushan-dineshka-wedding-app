@@ -4,6 +4,71 @@ import { useState, useEffect, useRef } from "react";
 import Fuse from "fuse.js";
 import { SEATING_DATA, buildGuestIndex, type GuestRecord } from "@/lib/seatingData";
 
+// ─── Countdown Clock ──────────────────────────────────────────────────────────
+const WEDDING_DATE = new Date("2026-05-18T00:00:00+05:30");
+
+function useCountdown() {
+  const calc = () => {
+    const diff = WEDDING_DATE.getTime() - Date.now();
+    if (diff <= 0) return { days: 0, hours: 0, minutes: 0, seconds: 0, done: true };
+    return {
+      days:    Math.floor(diff / 86400000),
+      hours:   Math.floor((diff % 86400000) / 3600000),
+      minutes: Math.floor((diff % 3600000) / 60000),
+      seconds: Math.floor((diff % 60000) / 1000),
+      done:    false,
+    };
+  };
+  const [time, setTime] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return time;
+}
+
+function CountdownClock() {
+  const { days, hours, minutes, seconds, done } = useCountdown();
+  if (done) return (
+    <div className="text-center mt-3 mb-1">
+      <span className="text-amber-600 text-sm font-semibold" style={{ fontFamily: "'Playfair Display', serif", letterSpacing: "0.12em" }}>
+        ✦ Today is the Day ✦
+      </span>
+    </div>
+  );
+  const units = [
+    { label: "Days",    value: days },
+    { label: "Hours",   value: hours },
+    { label: "Minutes", value: minutes },
+    { label: "Seconds", value: seconds },
+  ];
+  return (
+    <div className="flex justify-center gap-2 mt-3 mb-1">
+      {units.map(({ label, value }, i) => (
+        <div key={label} className="flex items-center gap-2">
+          <div
+            className="flex flex-col items-center justify-center rounded-xl px-2.5 py-2 min-w-[54px]"
+            style={{ background: "rgba(255,253,240,0.7)", border: "1px solid rgba(201,168,76,0.35)", boxShadow: "0 2px 10px rgba(180,140,40,0.12)" }}
+          >
+            <span
+              className="font-bold tabular-nums leading-none"
+              style={{ fontFamily: "'Playfair Display', serif", fontSize: "clamp(1.3rem,5vw,1.8rem)", color: "#8b6914", lineHeight: 1.1 }}
+            >
+              {String(value).padStart(2, "0")}
+            </span>
+            <span className="text-amber-700/70 uppercase mt-0.5" style={{ fontFamily: "'Lato', sans-serif", fontSize: "9px", letterSpacing: "0.15em" }}>
+              {label}
+            </span>
+          </div>
+          {i < 3 && (
+            <span className="text-amber-500/80 font-bold text-base pb-3" style={{ lineHeight: 1 }}>:</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Floral corner SVG ────────────────────────────────────────────────────────
 function FloralCorner({ flip = false }: { flip?: boolean }) {
   return (
@@ -434,6 +499,8 @@ export default function WeddingSeatingApp() {
           <div className="divider-ornament mt-3 px-6">
             <span className="text-amber-500 text-xs">❧</span>
           </div>
+
+          <CountdownClock />
         </div>
 
         {/* ── Search bar — right after hero ── */}
