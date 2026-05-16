@@ -9,7 +9,7 @@ export interface TableData {
   [tableName: string]: string[];
 }
 
-// Pre-parsed seating data from the uploaded Excel file
+// Updated seating data from "ne seating plan paszaaaan .xlsx" — Invitees - Nushan sheet
 export const SEATING_DATA: TableData = {
   "Table 1": [
     "Mr. Tharindu Dassanayake",
@@ -85,7 +85,7 @@ export const SEATING_DATA: TableData = {
   ],
   "Table 8": [
     "Mrs. Dilrukshi Madumali",
-    "Mrs. Dilini Madushika",
+    "Mr. Dimuthu Jayasuriya",
     "Ms. Dinushani Surangika",
     "Ms. Lakshika Madushani",
     "Mrs. Sudharika Jayawardane",
@@ -163,6 +163,7 @@ export const SEATING_DATA: TableData = {
     "Ms. Salani Uthpala",
     "Mr. Dushantha",
     "Mr. Ranasinha",
+    "Mr. Imal Sathsara",
     "Mrs. Welhenage Wasanthi",
     "Mr. Rathnasiri",
   ],

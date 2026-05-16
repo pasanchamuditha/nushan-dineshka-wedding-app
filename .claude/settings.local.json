@@ -17,7 +17,8 @@
       "Bash(git remote:*)",
       "Bash(git branch:*)",
       "Bash(git push:*)",
-      "Bash(git commit -m \"Fix mobile responsiveness, update date to 18 May, remove upload button:*)"
+      "Bash(git commit -m \"Fix mobile responsiveness, update date to 18 May, remove upload button:*)",
+      "Bash(git commit -m \"Update seating data, fix layout and mobile UX:*)"
     ]
   }
 }
