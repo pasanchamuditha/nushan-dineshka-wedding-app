@@ -491,26 +491,7 @@ function LocationModal({ onClose }: { onClose: () => void }) {
 // ─── Memories FAB ─────────────────────────────────────────────────────────────
 // ─── Background music ─────────────────────────────────────────────────────────
 // Shared Web Audio analyser — set once, read by MusicWave
-let _analyser: AnalyserNode | null = null;
-let _freqData: Uint8Array<ArrayBuffer> | null = null;
-
-function setupAnalyser(audio: HTMLAudioElement) {
-  if (_analyser) return;
-  try {
-    const AC = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new AC();
-    const src = ctx.createMediaElementSource(audio);
-    const analyser = ctx.createAnalyser();
-    analyser.fftSize = 256;
-    analyser.smoothingTimeConstant = 0.82;
-    src.connect(analyser);
-    analyser.connect(ctx.destination);
-    _analyser = analyser;
-    _freqData  = new Uint8Array(analyser.frequencyBinCount) as Uint8Array<ArrayBuffer>;
-    if (ctx.state === "suspended") ctx.resume();
-  } catch (_) { /* unsupported — wave falls back to simulation */ }
-}
-
+// ─── Background music (simple, no Web Audio routing to avoid breaking playback)
 function BackgroundMusic() {
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -528,13 +509,10 @@ function BackgroundMusic() {
       }, 120);
     };
 
-    const start = () => {
-      setupAnalyser(audio);
-      audio.play().then(fadeIn).catch(() => {});
-    };
+    const start = () => audio.play().then(fadeIn).catch(() => {});
 
     audio.play()
-      .then(() => { setupAnalyser(audio); fadeIn(); })
+      .then(fadeIn)
       .catch(() => {
         window.addEventListener("touchstart", start, { once: true, passive: true });
         window.addEventListener("click",      start, { once: true });
@@ -545,125 +523,69 @@ function BackgroundMusic() {
   return <audio ref={audioRef} src="/bruno-mars-marry-you_(MP3.co).mp3" loop preload="auto" />;
 }
 
-// ─── Music wave (bottom of page, canvas-based) ────────────────────────────────
-function roundedTopBar(
-  ctx: CanvasRenderingContext2D,
-  x: number, y: number, w: number, h: number, r: number
-) {
-  r = Math.min(r, h / 2, w / 2);
-  ctx.beginPath();
-  ctx.moveTo(x, y + h);
-  ctx.lineTo(x, y + r);
-  ctx.arcTo(x, y, x + r, y, r);
-  ctx.lineTo(x + w - r, y);
-  ctx.arcTo(x + w, y, x + w, y + r, r);
-  ctx.lineTo(x + w, y + h);
-  ctx.closePath();
-  ctx.fill();
-}
+// ─── Music wave — CSS animated bars, Apple Now Playing style ─────────────────
+const WAVE_BARS = Array.from({ length: 52 }, (_, i) => {
+  const n = i / 52;
+  const envelope = Math.sin(n * Math.PI) * 0.68 + 0.32; // taller centre, shorter edges
+  return {
+    h:   Math.round((14 + ((i * 19 + 5) % 38)) * envelope),
+    dur: `${0.38 + (i % 9) * 0.09}s`,
+    del: `${((i * 7) % 18) * 0.065}s`,
+  };
+});
 
 function MusicWave() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef    = useRef<number>(0);
-  const wrapRef   = useRef<HTMLDivElement>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
 
-  // Reveal on scroll
   useEffect(() => {
     const obs = new IntersectionObserver(
       ([e]) => { if (e.isIntersecting) setInView(true); },
-      { threshold: 0.05 }
+      { threshold: 0.01 }
     );
     if (wrapRef.current) obs.observe(wrapRef.current);
     return () => obs.disconnect();
   }, []);
 
-  // Canvas draw loop
-  useEffect(() => {
-    if (!inView) return;
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const c = canvas.getContext("2d");
-    if (!c) return;
-
-    const dpr  = window.devicePixelRatio || 1;
-    const W    = canvas.offsetWidth  * dpr;
-    const H    = canvas.offsetHeight * dpr;
-    canvas.width  = W;
-    canvas.height = H;
-
-    const BARS  = 58;
-    const barW  = W / BARS;
-    const halfH = H / 2;
-
-    const draw = () => {
-      c.clearRect(0, 0, W, H);
-      const t = Date.now() / 1000;
-
-      if (_analyser && _freqData) _analyser.getByteFrequencyData(_freqData);
-
-      for (let i = 0; i < BARS; i++) {
-        let amp: number; // 0–1
-
-        if (_analyser && _freqData) {
-          const bin = Math.floor((i / BARS) * (_freqData.length * 0.72));
-          amp = _freqData[bin] / 255;
-        } else {
-          // Smooth sine-wave simulation that looks like real audio
-          const n = i / BARS;
-          amp = Math.max(
-            0.04,
-            (Math.sin(t * 2.6 + n * Math.PI * 4.2) * 0.30 +
-             Math.sin(t * 1.9 + n * Math.PI * 7.5) * 0.22 +
-             Math.sin(t * 3.8 + n * Math.PI * 1.8) * 0.16 +
-             0.48)
-          );
-        }
-
-        const barH  = amp * halfH * 0.92;
-        const x     = i * barW;
-        const r     = Math.min(3 * dpr, barW * 0.38);
-
-        // Gradient: dark gold → bright gold
-        const grad = c.createLinearGradient(0, halfH - barH, 0, halfH + barH);
-        grad.addColorStop(0,   "rgba(245,218,68,0.75)");
-        grad.addColorStop(0.4, "rgba(201,168,76,0.85)");
-        grad.addColorStop(1,   "rgba(139,105,20,0.55)");
-        c.fillStyle = grad;
-
-        // Upper half (grows upward from center)
-        roundedTopBar(c, x + 1, halfH - barH, barW - 2, barH, r);
-        // Lower half (mirror, grows downward)
-        c.save();
-        c.translate(x + barW / 2, halfH);
-        c.scale(1, -1);
-        c.translate(-(x + barW / 2), -halfH);
-        roundedTopBar(c, x + 1, halfH - barH, barW - 2, barH, r);
-        c.restore();
-      }
-
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [inView]);
-
   return (
     <div
       ref={wrapRef}
-      className="w-full"
+      className="w-full overflow-hidden"
       style={{
         opacity:    inView ? 1 : 0,
-        transition: "opacity 1.2s ease",
-        filter:     "blur(1px)",
+        transform:  inView ? "translateY(0)" : "translateY(16px)",
+        transition: "opacity 1.1s ease, transform 1.1s ease",
       }}
       aria-hidden
     >
-      <canvas
-        ref={canvasRef}
-        style={{ width: "100%", height: "72px", display: "block", opacity: 0.48 }}
-      />
+      <style>{`
+        @keyframes musicWaveBar {
+          0%, 100% { transform: scaleY(0.07); }
+          50%       { transform: scaleY(1); }
+        }
+      `}</style>
+      <div
+        className="flex items-center w-full"
+        style={{ height: "68px", gap: "2px", padding: "0 1px", filter: "blur(0.6px)" }}
+      >
+        {WAVE_BARS.map((bar, i) => (
+          <div
+            key={i}
+            style={{
+              flex:            1,
+              minWidth:        "2px",
+              height:          `${bar.h}px`,
+              background:      "linear-gradient(to top, #8b6914 0%, #c9a84c 55%, #f5e060 100%)",
+              borderRadius:    "3px",
+              transformOrigin: "center",
+              opacity:         0.52,
+              animation:       inView
+                ? `musicWaveBar ${bar.dur} ${bar.del} ease-in-out infinite`
+                : "none",
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }
