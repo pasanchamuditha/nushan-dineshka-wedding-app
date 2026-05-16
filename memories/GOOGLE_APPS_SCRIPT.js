@@ -63,7 +63,8 @@ function processVote(data) {
     const props   = PropertiesService.getScriptProperties();
     const key     = "v_" + photoId;
     const stored  = props.getProperty(key);
-    const votes   = stored ? JSON.parse(stored) : { h: 0, f: 0, w: 0 };
+    const def    = { h: 0, f: 0, w: 0, l: 0, c: 0 };
+    const votes   = stored ? Object.assign(def, JSON.parse(stored)) : def;
 
     // Undo previous reaction
     if (prevReaction && votes[prevReaction] !== undefined) {
@@ -94,7 +95,7 @@ function doGet() {
       if (!f.getMimeType().startsWith("image/")) continue;
       const id       = f.getId();
       const stored   = props.getProperty("v_" + id);
-      const votes    = stored ? JSON.parse(stored) : { h: 0, f: 0, w: 0 };
+      const votes    = Object.assign({ h: 0, f: 0, w: 0, l: 0, c: 0 }, stored ? JSON.parse(stored) : {});
       photos.push({
         id,
         name:         f.getName(),

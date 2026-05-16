@@ -21,7 +21,7 @@ function compressImage(dataUrl: string): Promise<string> {
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-interface VoteData { h: number; f: number; w: number; }
+interface VoteData { h: number; f: number; w: number; l: number; c: number; }
 
 interface Photo {
   id: string;
@@ -31,16 +31,18 @@ interface Photo {
   votes?: VoteData;
 }
 
-type ReactionKey = "h" | "f" | "w";
+type ReactionKey = "h" | "f" | "w" | "l" | "c";
 
 const REACTIONS: { key: ReactionKey; emoji: string; label: string }[] = [
-  { key: "h", emoji: "❤️", label: "Love"  },
-  { key: "f", emoji: "🔥", label: "Fire"  },
-  { key: "w", emoji: "😍", label: "Wow"   },
+  { key: "h", emoji: "❤️",  label: "Love"    },
+  { key: "f", emoji: "🔥",  label: "Fire"    },
+  { key: "w", emoji: "😍",  label: "Wow"     },
+  { key: "l", emoji: "😂",  label: "Haha"    },
+  { key: "c", emoji: "😢",  label: "Crying"  },
 ];
 
 function totalVotes(v?: VoteData) {
-  return v ? (v.h + v.f + v.w) : 0;
+  return v ? (v.h + v.f + v.w + (v.l ?? 0) + (v.c ?? 0)) : 0;
 }
 
 // ─── Floating petals ──────────────────────────────────────────────────────────
@@ -120,12 +122,13 @@ function PhotoCard({
   const [pickerOpen, setPickerOpen] = useState(false);
   const total = totalVotes(photo.votes);
 
-  // Close picker when clicking outside
+  // Close picker when clicking outside (delayed so the opening click doesn't immediately close it)
   useEffect(() => {
     if (!pickerOpen) return;
+    let id: ReturnType<typeof setTimeout>;
     const close = () => setPickerOpen(false);
-    window.addEventListener("click", close, { once: true, capture: true });
-    return () => window.removeEventListener("click", close, { capture: true });
+    id = setTimeout(() => window.addEventListener("click", close, { once: true }), 0);
+    return () => { clearTimeout(id); window.removeEventListener("click", close); };
   }, [pickerOpen]);
 
   return (
@@ -160,6 +163,7 @@ function PhotoCard({
         {pickerOpen && (
           <div
             className="absolute bottom-full left-0 mb-1.5 flex items-center gap-1 px-2 py-1.5 rounded-2xl animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
             style={{
               background: "rgba(255,253,240,0.97)",
               border: "1px solid rgba(201,168,76,0.4)",
