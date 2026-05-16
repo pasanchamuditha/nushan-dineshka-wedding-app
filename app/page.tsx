@@ -69,6 +69,140 @@ function CountdownClock() {
   );
 }
 
+// ─── Agenda Modal ─────────────────────────────────────────────────────────────
+function AgendaModal({ onClose }: { onClose: () => void }) {
+  const [visible, setVisible] = useState(false);
+  useEffect(() => { requestAnimationFrame(() => setVisible(true)); }, []);
+  const close = () => { setVisible(false); setTimeout(onClose, 350); };
+
+  return (
+    <div
+      onClick={close}
+      className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{
+        background: "rgba(20,15,5,0.65)",
+        backdropFilter: "blur(6px)",
+        transition: "opacity 0.35s",
+        opacity: visible ? 1 : 0,
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          background: "linear-gradient(160deg,#fffdf0 0%,#fef3cd 60%,#fff8e7 100%)",
+          border: "1.5px solid rgba(201,168,76,0.45)",
+          boxShadow: "0 24px 60px rgba(120,90,20,0.28), 0 2px 12px rgba(201,168,76,0.18)",
+          borderRadius: "28px",
+          maxWidth: "360px",
+          width: "100%",
+          padding: "36px 28px 32px",
+          transition: "transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s",
+          transform: visible ? "translateY(0) scale(1)" : "translateY(40px) scale(0.92)",
+          opacity: visible ? 1 : 0,
+          position: "relative",
+        }}
+      >
+        {/* Close button */}
+        <button
+          onClick={close}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full transition-colors"
+          style={{ background: "rgba(201,168,76,0.12)", color: "#8b6914" }}
+          aria-label="Close"
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <line x1="1" y1="1" x2="13" y2="13"/><line x1="13" y1="1" x2="1" y2="13"/>
+          </svg>
+        </button>
+
+        {/* Ornament top */}
+        <div className="text-center mb-4">
+          <span style={{ fontSize: "28px" }}>💌</span>
+          <h3 className="font-bold mt-2" style={{ fontFamily: "'Playfair Display', serif", color: "#5c3d0e", fontSize: "1.35rem", letterSpacing: "0.1em" }}>
+            Wedding Agenda
+          </h3>
+          <div style={{ width: "48px", height: "1.5px", background: "linear-gradient(90deg,transparent,#c9a84c,transparent)", margin: "10px auto 0" }} />
+        </div>
+
+        {/* Coming Soon content */}
+        <div className="text-center py-6">
+          {/* Animated hourglass */}
+          <div style={{ fontSize: "48px", marginBottom: "12px", display: "inline-block", animation: "spin 3s linear infinite" }}>⏳</div>
+          <p style={{ fontFamily: "'Playfair Display', serif", color: "#7a5318", fontSize: "1.15rem", fontWeight: 600, letterSpacing: "0.06em" }}>
+            Coming Soon
+          </p>
+          <p style={{ fontFamily: "'Lato', sans-serif", color: "#a07840", fontSize: "0.82rem", marginTop: "8px", lineHeight: 1.6, letterSpacing: "0.04em" }}>
+            The full wedding agenda will be<br />revealed closer to the big day.
+          </p>
+
+          {/* Decorative dots */}
+          <div style={{ display: "flex", justifyContent: "center", gap: "6px", marginTop: "20px" }}>
+            {[0, 0.3, 0.6].map((d, i) => (
+              <span key={i} style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#c9a84c", opacity: 0.5, display: "inline-block", animation: `pulse 1.6s ${d}s ease-in-out infinite` }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom ornament */}
+        <p className="text-center mt-2" style={{ fontFamily: "'Lato', sans-serif", color: "#c9a84c", fontSize: "11px", letterSpacing: "0.25em" }}>
+          ✦ NUSHAN &amp; DINESHKA ✦
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ─── Envelope Button ──────────────────────────────────────────────────────────
+function EnvelopeButton({ onClick }: { onClick: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col items-center mt-4 mb-2">
+      <button
+        onClick={() => { setOpen(true); onClick(); }}
+        aria-label="View wedding agenda"
+        className="group flex flex-col items-center gap-1.5 focus:outline-none"
+      >
+        {/* Envelope SVG */}
+        <div
+          className="relative transition-transform duration-200 group-hover:scale-110 group-active:scale-95"
+          style={{ filter: "drop-shadow(0 4px 14px rgba(180,140,40,0.35))" }}
+        >
+          <svg width="62" height="46" viewBox="0 0 62 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+            {/* Envelope body */}
+            <rect x="1" y="1" width="60" height="44" rx="6" fill="url(#envGrad)" stroke="#c9a84c" strokeWidth="1.5"/>
+            {/* Flap */}
+            <path d={open ? "M1 1 L31 20 L61 1" : "M1 1 L31 24 L61 1 L61 1 Q55 14 31 26 Q7 14 1 1Z"}
+              fill={open ? "none" : "url(#flapGrad)"} stroke="#c9a84c" strokeWidth="1.5" strokeLinejoin="round"
+              style={{ transition: "d 0.4s ease" }}
+            />
+            {/* V fold lines */}
+            <path d="M1 46 L31 24 L61 46" stroke="#c9a84c" strokeWidth="1" strokeOpacity="0.5"/>
+            {/* Wax seal */}
+            <circle cx="31" cy="26" r="7" fill="url(#sealGrad)" stroke="#c9a84c" strokeWidth="1"/>
+            <text x="31" y="30" textAnchor="middle" fontSize="8" fill="white" fontFamily="serif">N&amp;D</text>
+            <defs>
+              <linearGradient id="envGrad" x1="0" y1="0" x2="62" y2="46" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#fffdf0"/>
+                <stop offset="100%" stopColor="#fef3cd"/>
+              </linearGradient>
+              <linearGradient id="flapGrad" x1="0" y1="0" x2="62" y2="26" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#fef3cd"/>
+                <stop offset="100%" stopColor="#f5dfa0"/>
+              </linearGradient>
+              <linearGradient id="sealGrad" x1="24" y1="19" x2="38" y2="33" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stopColor="#c9a84c"/>
+                <stop offset="100%" stopColor="#8b6914"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span style={{ fontFamily: "'Lato', sans-serif", fontSize: "10px", letterSpacing: "0.22em", color: "#8b6914", textTransform: "uppercase", fontWeight: 600 }}>
+          View Agenda
+        </span>
+      </button>
+    </div>
+  );
+}
+
 // ─── Floral corner SVG ────────────────────────────────────────────────────────
 function FloralCorner({ flip = false }: { flip?: boolean }) {
   return (
@@ -423,6 +557,7 @@ export default function WeddingSeatingApp() {
   const [results, setResults]     = useState<GuestRecord[]>([]);
   const [selected, setSelected]   = useState<GuestRecord | null>(null);
   const [showMap, setShowMap]     = useState(false);
+  const [showAgenda, setShowAgenda] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -463,6 +598,7 @@ export default function WeddingSeatingApp() {
     <div className="relative min-h-screen overflow-x-hidden">
       <FloatingPetals />
       {showMap && <LocationModal onClose={() => setShowMap(false)} />}
+      {showAgenda && <AgendaModal onClose={() => setShowAgenda(false)} />}
       <MemoriesFAB />
       <LocationFAB onClick={() => setShowMap(true)} />
 
@@ -501,6 +637,7 @@ export default function WeddingSeatingApp() {
           </div>
 
           <CountdownClock />
+          <EnvelopeButton onClick={() => setShowAgenda(true)} />
         </div>
 
         {/* ── Search bar — right after hero ── */}
