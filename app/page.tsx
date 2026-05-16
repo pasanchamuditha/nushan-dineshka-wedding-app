@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Fuse from "fuse.js";
 import { SEATING_DATA, buildGuestIndex, type GuestRecord } from "@/lib/seatingData";
+import { SeatingMapModal } from "./SeatingMap";
 
 // ─── Countdown Clock ──────────────────────────────────────────────────────────
 const WEDDING_DATE = new Date("2026-05-18T00:00:00+05:30");
@@ -305,7 +306,7 @@ function highlightMatch(text: string, query: string): React.ReactNode {
 }
 
 // ─── Result card ──────────────────────────────────────────────────────────────
-function ResultCard({ guest, query }: { guest: GuestRecord; query: string }) {
+function ResultCard({ guest, query, onShowMap }: { guest: GuestRecord; query: string; onShowMap: () => void }) {
   return (
     <div className="glass-card-dark rounded-3xl p-5 animate-fade-in-scale w-full">
       <div className="flex flex-col items-center mb-5">
@@ -317,6 +318,24 @@ function ResultCard({ guest, query }: { guest: GuestRecord; query: string }) {
           {highlightMatch(guest.name, query)}
         </h2>
         <p className="text-amber-600 text-sm mt-1" style={{ fontFamily: "'Lato', sans-serif" }}>Your assigned seat ✦</p>
+
+        {/* View on Map button */}
+        <button
+          onClick={onShowMap}
+          className="mt-3 flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-white text-sm transition-all active:scale-95 hover:opacity-90"
+          style={{
+            background: "linear-gradient(135deg,#22c55e 0%,#15803d 100%)",
+            boxShadow: "0 4px 14px rgba(34,197,94,0.4)",
+            fontFamily: "'Lato', sans-serif",
+            letterSpacing: "0.04em",
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+          </svg>
+          View Table on Map
+        </button>
       </div>
 
       <div className="divider-ornament px-4 mb-4">
@@ -552,12 +571,13 @@ const fuse = new Fuse(buildGuestIndex(SEATING_DATA), {
 });
 
 export default function WeddingSeatingApp() {
-  const [query, setQuery]         = useState("");
+  const [query, setQuery]               = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [results, setResults]     = useState<GuestRecord[]>([]);
-  const [selected, setSelected]   = useState<GuestRecord | null>(null);
-  const [showMap, setShowMap]     = useState(false);
-  const [showAgenda, setShowAgenda] = useState(false);
+  const [results, setResults]           = useState<GuestRecord[]>([]);
+  const [selected, setSelected]         = useState<GuestRecord | null>(null);
+  const [showMap, setShowMap]           = useState(false);
+  const [showAgenda, setShowAgenda]     = useState(false);
+  const [showSeatingMap, setShowSeatingMap] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -599,6 +619,9 @@ export default function WeddingSeatingApp() {
       <FloatingPetals />
       {showMap && <LocationModal onClose={() => setShowMap(false)} />}
       {showAgenda && <AgendaModal onClose={() => setShowAgenda(false)} />}
+      {showSeatingMap && selected && (
+        <SeatingMapModal tableNumber={selected.tableNumber} onClose={() => setShowSeatingMap(false)} />
+      )}
       <MemoriesFAB />
       <LocationFAB onClick={() => setShowMap(true)} />
 
@@ -648,7 +671,7 @@ export default function WeddingSeatingApp() {
         {/* ── Results area ── */}
         <div ref={resultsRef}>
           {selected ? (
-            <ResultCard guest={selected} query={query} />
+            <ResultCard guest={selected} query={query} onShowMap={() => setShowSeatingMap(true)} />
           ) : results.length > 0 ? (
             <MultiResults results={results} onSelect={setSelected} />
           ) : query.trim().length >= 2 ? (
