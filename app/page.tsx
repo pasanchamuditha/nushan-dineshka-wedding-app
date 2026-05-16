@@ -660,7 +660,6 @@ export default function WeddingSeatingApp() {
           </div>
 
           <CountdownClock />
-          <EnvelopeButton onClick={() => setShowAgenda(true)} />
         </div>
 
         {/* ── Search bar — right after hero ── */}
@@ -707,6 +706,7 @@ export default function WeddingSeatingApp() {
         )}
 
         <Footer />
+        <EnvelopeButton onClick={() => setShowAgenda(true)} />
       </div>
     </div>
   );
