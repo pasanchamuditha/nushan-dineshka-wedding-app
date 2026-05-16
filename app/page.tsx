@@ -270,6 +270,36 @@ function LocationModal({ onClose }: { onClose: () => void }) {
 }
 
 // ─── Floating location button ─────────────────────────────────────────────────
+// ─── Memories FAB ─────────────────────────────────────────────────────────────
+function MemoriesFAB() {
+  return (
+    <a
+      href="https://nushan-dineshka-wedding-app-1loy.vercel.app/"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Share your wedding memories"
+      className="fixed bottom-28 right-5 z-40 flex flex-col items-center gap-1 group"
+    >
+      {/* Pulse ring */}
+      <span className="absolute inset-0 rounded-full animate-ping-slow opacity-25" style={{ background: "#e8a0b4", borderRadius: "50%" }} aria-hidden />
+      {/* Button */}
+      <span
+        className="relative w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform active:scale-95 group-hover:scale-105"
+        style={{ background: "linear-gradient(135deg,#e8a0b4 0%,#b5587a 100%)", boxShadow: "0 6px 20px rgba(181,88,122,0.45)" }}
+      >
+        {/* Camera icon */}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </svg>
+      </span>
+      <span className="relative text-xs font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,253,240,0.95)", color: "#b5587a", fontFamily: "'Lato', sans-serif", boxShadow: "0 2px 8px rgba(181,88,122,0.18)", fontSize: "10px", letterSpacing: "0.03em" }}>
+        Memories
+      </span>
+    </a>
+  );
+}
+
 function LocationFAB({ onClick }: { onClick: () => void }) {
   return (
     <button
@@ -368,6 +398,7 @@ export default function WeddingSeatingApp() {
     <div className="relative min-h-screen overflow-x-hidden">
       <FloatingPetals />
       {showMap && <LocationModal onClose={() => setShowMap(false)} />}
+      <MemoriesFAB />
       <LocationFAB onClick={() => setShowMap(true)} />
 
       <div className="relative z-10 w-full max-w-lg mx-auto px-4 py-8">
