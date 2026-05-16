@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import Fuse from "fuse.js";
 import { SEATING_DATA, buildGuestIndex, type GuestRecord } from "@/lib/seatingData";
 
@@ -200,43 +200,43 @@ const fuse = new Fuse(buildGuestIndex(SEATING_DATA), {
 });
 
 export default function WeddingSeatingApp() {
-  const [query, setQuery]       = useState("");
-  const [results, setResults]   = useState<GuestRecord[]>([]);
-  const [selected, setSelected] = useState<GuestRecord | null>(null);
+  const [query, setQuery]         = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [results, setResults]     = useState<GuestRecord[]>([]);
+  const [selected, setSelected]   = useState<GuestRecord | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to results on mobile when they appear
-  const scrollToResults = useCallback(() => {
-    setTimeout(() => {
-      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 80);
-  }, []);
+  // Debounce: wait 500ms after user stops typing before searching
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 500);
+    return () => clearTimeout(timer);
+  }, [query]);
 
+  // Run search only on debounced value
   useEffect(() => {
     setSelected(null);
-    if (!query.trim() || query.trim().length < 2) {
+    const q = debouncedQuery.trim();
+    if (!q || q.length < 2) {
       setResults([]);
       return;
     }
-    const found = fuse.search(query.trim()).map((r) => r.item);
-    const exact = found.filter((g) => g.name.toLowerCase() === query.trim().toLowerCase());
+    const found = fuse.search(q).map((r) => r.item);
+    const exact = found.filter((g) => g.name.toLowerCase() === q.toLowerCase());
     if (exact.length === 1) {
       setSelected(exact[0]);
       setResults([]);
-      scrollToResults();
     } else if (found.length === 1) {
       setSelected(found[0]);
       setResults([]);
-      scrollToResults();
-    } else if (found.length > 1) {
-      setResults(found.slice(0, 8));
-      scrollToResults();
     } else {
-      setResults([]);
-      scrollToResults();
+      setResults(found.slice(0, 8));
     }
-  }, [query, scrollToResults]);
+    // Scroll to results once, after search settles
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }, 100);
+  }, [debouncedQuery]);
 
   const hasResult = selected || results.length > 0 || query.trim().length >= 2;
 
