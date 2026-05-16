@@ -544,6 +544,128 @@ function LocationFAB({ onClick }: { onClick: () => void }) {
   );
 }
 
+// ─── Band Section ─────────────────────────────────────────────────────────────
+const BAND_VIDEO_ID = "GR4B9PRz-rA";
+const BAND_CHANNEL  = "https://www.youtube.com/@HopeBandSL";
+
+function BandSection() {
+  const [inView,   setInView]   = useState(false);
+  const [playing,  setPlaying]  = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true); },
+      { threshold: 0.35 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={sectionRef}
+      className="w-full mt-2 mb-8"
+      style={{
+        opacity:    inView ? 1 : 0,
+        transform:  inView ? "translateY(0)" : "translateY(32px)",
+        transition: "opacity 0.7s ease, transform 0.7s ease",
+      }}
+    >
+      {/* Section header */}
+      <div className="text-center mb-5">
+        <div className="divider-ornament px-6 mb-4">
+          <span style={{ fontSize: "16px" }}>🎵</span>
+        </div>
+        <p className="text-stone-500 text-xs uppercase" style={{ fontFamily: "'Lato', sans-serif", letterSpacing: "0.38em" }}>
+          Live Entertainment
+        </p>
+        <h3 className="font-bold text-stone-800 mt-1.5" style={{ fontFamily: "'Playfair Display', serif", fontSize: "1.45rem", letterSpacing: "0.06em" }}>
+          Hope Band SL
+        </h3>
+        <p className="text-amber-600/70 text-xs mt-1" style={{ fontFamily: "'Lato', sans-serif", letterSpacing: "0.08em" }}>
+          Performing live at Nushan &amp; Dineshka's wedding ✦
+        </p>
+      </div>
+
+      {/* Video card */}
+      <div
+        className="glass-card rounded-2xl overflow-hidden"
+        style={{ position: "relative", aspectRatio: "16/9" }}
+      >
+        {playing ? (
+          <iframe
+            src={`https://www.youtube.com/embed/${BAND_VIDEO_ID}?autoplay=1&rel=0&modestbranding=1`}
+            width="100%"
+            height="100%"
+            style={{ border: 0, display: "block" }}
+            allow="autoplay; encrypted-media"
+            allowFullScreen
+            title="Hope Band SL – Live Performance"
+          />
+        ) : (
+          <button
+            onClick={() => setPlaying(true)}
+            className="absolute inset-0 w-full h-full flex flex-col items-center justify-center group"
+            aria-label="Play Hope Band SL video"
+          >
+            {/* Thumbnail */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={`https://img.youtube.com/vi/${BAND_VIDEO_ID}/hqdefault.jpg`}
+              alt="Hope Band SL live performance"
+              className="absolute inset-0 w-full h-full object-cover"
+              style={{ opacity: 0.82 }}
+            />
+            {/* Dark overlay */}
+            <div className="absolute inset-0" style={{ background: "rgba(20,12,4,0.32)" }} />
+            {/* Play button */}
+            <div className="relative flex flex-col items-center gap-2">
+              <div
+                className="w-16 h-16 rounded-full flex items-center justify-center group-hover:scale-110 group-active:scale-95 transition-transform"
+                style={{
+                  background: "linear-gradient(135deg,#c9a84c,#8b6914)",
+                  boxShadow: "0 6px 24px rgba(0,0,0,0.45)",
+                  ...(inView ? { animation: "heartbeat 2s ease-in-out infinite" } : {}),
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="white">
+                  <polygon points="5 3 19 12 5 21 5 3"/>
+                </svg>
+              </div>
+              <span
+                className="relative text-white text-xs font-semibold px-3 py-1 rounded-full"
+                style={{ background: "rgba(0,0,0,0.45)", fontFamily: "'Lato', sans-serif", letterSpacing: "0.08em" }}
+              >
+                Watch Live Performance
+              </span>
+            </div>
+          </button>
+        )}
+      </div>
+
+      {/* Channel link */}
+      <div className="text-center mt-3">
+        <a
+          href={BAND_CHANNEL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 transition-opacity hover:opacity-80"
+          style={{ fontFamily: "'Lato', sans-serif", fontSize: "11px", color: "#a07840", letterSpacing: "0.06em" }}
+        >
+          {/* YouTube icon */}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+          </svg>
+          View Hope Band SL on YouTube
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ─── Footer ───────────────────────────────────────────────────────────────────
 function Footer() {
   return (
@@ -707,6 +829,7 @@ export default function WeddingSeatingApp() {
 
         <Footer />
         <EnvelopeButton onClick={() => setShowAgenda(true)} />
+        <BandSection />
       </div>
     </div>
   );
