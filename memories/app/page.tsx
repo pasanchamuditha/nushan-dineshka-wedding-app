@@ -29,6 +29,7 @@ interface Photo {
   thumbnailUrl: string;
   createdAt: string;
   votes?: VoteData;
+  type?: "photo" | "video";
 }
 
 type ReactionKey = "h" | "f" | "w" | "l" | "c";
@@ -146,16 +147,26 @@ function PhotoCard({
         </div>
       )}
 
-      {/* Photo */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={photo.thumbnailUrl}
-        alt={`Wedding memory ${index + 1}`}
-        loading="lazy"
-        className="w-full cursor-pointer block"
-        onClick={onOpenLightbox}
-        onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-      />
+      {/* Photo / Video thumbnail */}
+      <div className="relative cursor-pointer" onClick={onOpenLightbox}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={photo.thumbnailUrl}
+          alt={`Wedding memory ${index + 1}`}
+          loading="lazy"
+          className="w-full block"
+          onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        {photo.type === "video" && (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="white">
+                <polygon points="5,3 19,12 5,21"/>
+              </svg>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Vote button overlay (bottom-left) */}
       <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
@@ -240,6 +251,8 @@ function PhotoCard({
 
 // ─── Lightbox ─────────────────────────────────────────────────────────────────
 function Lightbox({ photo, onClose }: { photo: Photo; onClose: () => void }) {
+  const isVideo = photo.type === "video";
+
   useEffect(() => {
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -255,8 +268,17 @@ function Lightbox({ photo, onClose }: { photo: Photo; onClose: () => void }) {
     >
       <div className="animate-fade-in max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
         <div className="relative rounded-2xl overflow-hidden shadow-2xl" style={{ border: "1px solid rgba(201,168,76,0.3)" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={photo.thumbnailUrl} alt={photo.name} className="w-full object-contain" style={{ maxHeight: "70vh" }} />
+          {isVideo ? (
+            <iframe
+              src={`https://drive.google.com/file/d/${photo.id}/preview`}
+              className="w-full"
+              style={{ height: "60vw", maxHeight: "420px", border: "none", display: "block", background: "#000" }}
+              allow="autoplay"
+            />
+          ) : (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={photo.thumbnailUrl} alt={photo.name} className="w-full object-contain" style={{ maxHeight: "70vh" }} />
+          )}
           <div className="absolute top-3 right-3 flex gap-2">
             <a
               href={`https://drive.google.com/uc?export=download&id=${photo.id}`}
@@ -277,7 +299,7 @@ function Lightbox({ photo, onClose }: { photo: Photo; onClose: () => void }) {
             </button>
           </div>
           <div className="absolute bottom-0 inset-x-0 px-4 py-3 text-xs text-white/70" style={{ background: "linear-gradient(transparent,rgba(0,0,0,0.5))", fontFamily: "'Lato', sans-serif" }}>
-            {new Date(photo.createdAt).toLocaleString()}
+            {isVideo && <span className="mr-2">🎥</span>}{new Date(photo.createdAt).toLocaleString()}
           </div>
         </div>
       </div>
@@ -339,6 +361,7 @@ function Gallery({
 
 // ─── Upload modal ─────────────────────────────────────────────────────────────
 function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded: (p: Photo) => void }) {
+  const [mode,      setMode]      = useState<"photo" | "video">("photo");
   const [preview,   setPreview]   = useState<string | null>(null);
   const [file,      setFile]      = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -350,9 +373,18 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
     return () => { document.body.style.overflow = ""; };
   }, []);
 
+  // Reset preview when switching mode
+  const switchMode = (m: "photo" | "video") => {
+    setMode(m); setPreview(null); setFile(null); setError(null);
+  };
+
   const handleFile = (f: File) => {
-    if (!f.type.startsWith("image/")) { setError("Please select an image file."); return; }
-    if (f.size > 50 * 1024 * 1024) { setError("Image too large. Max 50 MB."); return; }
+    const isVideo = f.type.startsWith("video/");
+    const isImage = f.type.startsWith("image/");
+    if (mode === "photo" && !isImage) { setError("Please select an image file."); return; }
+    if (mode === "video" && !isVideo) { setError("Please select a video file."); return; }
+    if (isImage && f.size > 50 * 1024 * 1024) { setError("Image too large. Max 50 MB."); return; }
+    if (isVideo && f.size > 80 * 1024 * 1024) { setError("Video too large. Keep it under 80 MB (about 30–60 sec)."); return; }
     setError(null); setFile(f);
     const reader = new FileReader();
     reader.onload = (e) => setPreview(e.target?.result as string);
@@ -363,14 +395,20 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
     if (!file || !preview) return;
     setUploading(true); setError(null);
     try {
-      const compressed = await compressImage(preview);
+      let body: object;
+      if (mode === "photo") {
+        const compressed = await compressImage(preview);
+        body = { image: compressed, mimeType: "image/jpeg" };
+      } else {
+        body = { video: preview, mimeType: file.type };
+      }
       const res  = await fetch("/api/upload", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: compressed, mimeType: "image/jpeg" }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Upload failed");
-      onUploaded({ id: data.fileId, name: data.fileName, thumbnailUrl: data.thumbnailUrl, createdAt: new Date().toISOString() });
+      onUploaded({ id: data.fileId, name: data.fileName, thumbnailUrl: data.thumbnailUrl, createdAt: new Date().toISOString(), type: data.type ?? mode });
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed. Please try again.");
@@ -398,11 +436,36 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
               </button>
             )}
           </div>
+
           <div className="p-5">
+            {/* Photo / Video toggle */}
+            <div className="flex rounded-xl overflow-hidden mb-4" style={{ border: "1px solid rgba(201,168,76,0.3)", background: "rgba(255,253,240,0.6)" }}>
+              {(["photo", "video"] as const).map((m) => (
+                <button
+                  key={m}
+                  onClick={() => switchMode(m)}
+                  disabled={uploading}
+                  className="flex-1 py-2 text-sm font-semibold flex items-center justify-center gap-1.5 transition-all"
+                  style={{
+                    background: mode === m ? "linear-gradient(135deg,#c9a84c,#a8862e)" : "transparent",
+                    color: mode === m ? "#fff" : "#a08030",
+                    fontFamily: "'Lato', sans-serif",
+                  }}
+                >
+                  {m === "photo" ? <><span>📷</span> Photo</> : <><span>🎥</span> Video</>}
+                </button>
+              ))}
+            </div>
+
             {preview ? (
               <div className="relative rounded-2xl overflow-hidden mb-4 preview-ring">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={preview} alt="Preview" className="w-full object-contain" style={{ maxHeight: "280px" }} />
+                {mode === "photo" ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={preview} alt="Preview" className="w-full object-contain" style={{ maxHeight: "280px" }} />
+                ) : (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video src={preview} controls className="w-full" style={{ maxHeight: "280px", background: "#000", display: "block" }} />
+                )}
                 {!uploading && (
                   <button onClick={() => { setPreview(null); setFile(null); }} className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-white" style={{ background: "rgba(0,0,0,0.5)" }}>
                     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -416,23 +479,40 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
                 style={{ border: "2px dashed rgba(201,168,76,0.4)", background: "rgba(255,253,240,0.7)" }}
                 onClick={() => inputRef.current?.click()}>
                 <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: "linear-gradient(135deg,#c9a84c,#a8862e)", boxShadow: "0 4px 16px rgba(180,140,40,0.35)" }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                  </svg>
+                  {mode === "photo" ? (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  ) : (
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                  )}
                 </div>
-                <p className="font-semibold text-stone-700 text-base" style={{ fontFamily: "'Playfair Display', serif" }}>Take or Select a Photo</p>
-                <p className="text-amber-600/60 text-xs mt-1" style={{ fontFamily: "'Lato', sans-serif" }}>Tap to open your camera or gallery</p>
+                <p className="font-semibold text-stone-700 text-base" style={{ fontFamily: "'Playfair Display', serif" }}>
+                  {mode === "photo" ? "Take or Select a Photo" : "Record or Select a Video"}
+                </p>
+                <p className="text-amber-600/60 text-xs mt-1" style={{ fontFamily: "'Lato', sans-serif" }}>
+                  {mode === "photo" ? "Tap to open your camera or gallery" : "Keep it short & sweet (under 80 MB)"}
+                </p>
               </button>
             )}
-            <input ref={inputRef} type="file" accept="image/*" capture="environment" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept={mode === "photo" ? "image/*" : "video/*"}
+              capture={mode === "photo" ? "environment" : undefined}
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+            />
             {error && <p className="text-red-600 text-sm text-center mb-3" style={{ fontFamily: "'Lato', sans-serif" }}>⚠ {error}</p>}
             <div className="flex gap-3">
               {preview && !uploading && (
                 <button onClick={() => inputRef.current?.click()} className="flex-1 py-3 rounded-2xl text-sm font-medium"
                   style={{ background: "rgba(201,168,76,0.1)", color: "#8b6914", border: "1px solid rgba(201,168,76,0.3)", fontFamily: "'Lato', sans-serif" }}>
-                  Retake
+                  {mode === "photo" ? "Retake" : "Re-select"}
                 </button>
               )}
               <button onClick={preview ? upload : () => inputRef.current?.click()} disabled={uploading}
@@ -440,7 +520,7 @@ function UploadModal({ onClose, onUploaded }: { onClose: () => void; onUploaded:
                 style={{ background: "linear-gradient(135deg,#c9a84c,#a8862e)", boxShadow: "0 4px 16px rgba(180,140,40,0.35)", fontFamily: "'Lato', sans-serif" }}>
                 {uploading ? (
                   <><div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full" style={{ animation: "spin 0.8s linear infinite" }} />Uploading…</>
-                ) : preview ? <><span>✦</span> Share Memory</> : <><span>📷</span> Open Camera</>}
+                ) : preview ? <><span>✦</span> Share Memory</> : mode === "photo" ? <><span>📷</span> Open Camera</> : <><span>🎥</span> Select Video</>}
               </button>
             </div>
           </div>
