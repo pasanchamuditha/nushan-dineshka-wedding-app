@@ -241,6 +241,56 @@ function FloralCorner({ flip = false }: { flip?: boolean }) {
 
 // ─── Floating petals ──────────────────────────────────────────────────────────
 const PETAL_CHARS = ["✿", "❀", "✾", "❁", "✿", "❀"];
+// ─── Music visualizer background ──────────────────────────────────────────────
+const EQ_BARS = Array.from({ length: 40 }, (_, i) => ({
+  maxH: 20 + ((i * 13 + 7) % 65),          // deterministic varied heights
+  dur:  `${0.55 + (i % 7) * 0.14}s`,
+  del:  `${((i * 11) % 22) * 0.085}s`,
+}));
+
+function MusicVisualizerBg() {
+  return (
+    <>
+      <style>{`
+        @keyframes eqBar {
+          0%, 100% { transform: scaleY(0.05); }
+          50%       { transform: scaleY(1); }
+        }
+      `}</style>
+      <div
+        className="pointer-events-none fixed inset-0 z-0 overflow-hidden flex items-end"
+        aria-hidden
+      >
+        <div
+          className="flex items-end w-full"
+          style={{
+            height: "72vh",
+            padding: "0 2px",
+            gap: "2px",
+            filter: "blur(10px)",
+            opacity: 0.13,
+          }}
+        >
+          {EQ_BARS.map((bar, i) => (
+            <div
+              key={i}
+              style={{
+                flex: 1,
+                minWidth: "1px",
+                height: `${bar.maxH}%`,
+                background: "linear-gradient(to top, #8b6914, #c9a84c, #f5e070)",
+                borderRadius: "3px 3px 0 0",
+                transformOrigin: "bottom",
+                animation: `eqBar ${bar.dur} ${bar.del} ease-in-out infinite`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function FloatingPetals() {
   const petals = Array.from({ length: 8 }, (_, i) => ({
     id: i,
@@ -773,6 +823,7 @@ export default function WeddingSeatingApp() {
 
   return (
     <div className="relative min-h-screen overflow-x-hidden">
+      <MusicVisualizerBg />
       <FloatingPetals />
       {showMap && <LocationModal onClose={() => setShowMap(false)} />}
       {showAgenda && <AgendaModal onClose={() => setShowAgenda(false)} />}
