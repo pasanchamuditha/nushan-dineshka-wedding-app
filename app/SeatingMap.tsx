@@ -7,76 +7,69 @@ const VP_H = 510;
 
 interface Pt { x: number; y: number; }
 
-// ─── Table positions ──────────────────────────────────────────────────────────
-// Col L (x=65):  T16,T17,T13,T11,T10   (top → bottom, left wall)
-// Col CL(x=135): T09,T07
-// Col C (x=195): T08,T15
-// Col CR(x=250): T05,T06
-// Col R (x=300): T12,T14,T03,T02,T01   (right side)
-// Col FR(x=340): T04                   (far right, next to T03)
+// ─── Table positions ───────────────────────────────────────────────────────────
+// Col 1 x= 48: T1, T4
+// Col 2 x=112: T2, T3, T12, T14
+// Col 3 x=183: T6, T5, T8,  T15
+// Col 4 x=252: T7, T9, T17, T16
+// Col 5 x=330: T10(alone), T11, T13
 //
-// Row A y= 85:  T16, T08, T12
-// Row B y=150:  T17, T15, T14
-// Row C y=210:  T09, T05, T03, T04
-// Row D y=270:  T13, T07, T06
-// Row E y=325:  T11, T02
-// Row F y=380:  T10, T01
+// Row A y=176: T1,  T2,  T6,  T7,  T11
+// Row B y=224: T4,  T3,  T5,  T9,  T13  ← entrance (right wall)
+// Row C y=345: T12, T8,  T17
+// Row D y=395: T14, T15, T16
+// Solo  y=128: T10  (above Row A, col 5)
 //
-// Aisles (clear of all table circles ±17):
-//   y= 55 (above row A)      row A top  = 68
-//   y=118 (A→B)              97 < 118 < 133
-//   y=180 (B→C)             167 < 180 < 193
-//   y=240 (C→D)             227 < 240 < 253
-//   y=300 (D→E)             287 < 300 < 308
-//   y=356 (E→F = entrance)  342 < 356 < 363
+// Horizontal aisles (verified clear of all circles ±17 px):
+//   y=105  above T10        (T10 top=111)
+//   y=152  T10→RowA         (T10 bot=145 < 152 < RowA top=159)
+//   y=200  RowA→RowB        (RowA bot=193 < 200 < RowB top=207)
+//   y=285  RowB→RowC        (RowB bot=241 < 285 < RowC top=328)
+//   y=370  RowC→RowD        (RowC bot=362 < 370 < RowD top=378)
 const TABLE_POS: Record<number, Pt> = {
-  16: { x:  65, y:  85 },
-   8: { x: 195, y:  85 },
-  12: { x: 300, y:  85 },
-  17: { x:  65, y: 150 },
-  15: { x: 195, y: 150 },
-  14: { x: 300, y: 150 },
-   9: { x: 135, y: 210 },
-   5: { x: 250, y: 210 },
-   3: { x: 300, y: 210 },
-   4: { x: 340, y: 210 },
-  13: { x:  65, y: 270 },
-   7: { x: 135, y: 270 },
-   6: { x: 250, y: 270 },
-  11: { x:  65, y: 325 },
-   2: { x: 300, y: 325 },
-  10: { x:  65, y: 380 },
-   1: { x: 300, y: 380 },
+   1: { x:  48, y: 176 },
+   2: { x: 112, y: 176 },
+   3: { x: 112, y: 224 },
+   4: { x:  48, y: 224 },
+   5: { x: 183, y: 224 },
+   6: { x: 183, y: 176 },
+   7: { x: 252, y: 176 },
+   8: { x: 183, y: 345 },
+   9: { x: 252, y: 224 },
+  10: { x: 330, y: 128 },
+  11: { x: 330, y: 176 },
+  12: { x: 112, y: 345 },
+  13: { x: 330, y: 224 },
+  14: { x: 112, y: 395 },
+  15: { x: 183, y: 395 },
+  16: { x: 252, y: 395 },
+  17: { x: 252, y: 345 },
 };
 
-// Entrance: LEFT wall, between rows E and F
-const ENTRANCE: Pt = { x: 8, y: 356 };
-const AISLE_X      = 30; // left vertical aisle (clear: tables start at x=65-17=48)
+// Entrance: RIGHT wall, Row B level
+const ENTRANCE: Pt = { x: 392, y: 224 };
+// Right vertical aisle — clear of T10/T11/T13 (right edge 330+17=347)
+const AISLE_X = 358;
 
 function getHAisle(n: number): number {
-  const y = TABLE_POS[n]?.y ?? 356;
-  if (y <=  85) return  55;
-  if (y <= 150) return 118;
-  if (y <= 210) return 180;
-  if (y <= 270) return 240;
-  if (y <= 325) return 300;
-  return 356; // entrance level — row F tables
+  const y = TABLE_POS[n]?.y ?? 224;
+  if (y <= 128) return 105;  // T10 alone
+  if (y <= 176) return 152;  // Row A
+  if (y <= 224) return 200;  // Row B
+  if (y <= 345) return 285;  // Row C
+  return 370;                 // Row D
 }
 
 function getWaypoints(tableNum: number): Pt[] {
   const pos = TABLE_POS[tableNum];
   if (!pos) return [];
   const hy = getHAisle(tableNum);
-  // Row F shares y-level with entrance — go directly right
-  if (hy === ENTRANCE.y) {
-    return [ENTRANCE, { x: pos.x, y: ENTRANCE.y }, pos];
-  }
   return [
     ENTRANCE,
-    { x: AISLE_X, y: ENTRANCE.y }, // step into left aisle
-    { x: AISLE_X, y: hy },          // travel aisle to corridor
-    { x: pos.x,   y: hy },          // walk corridor to table column
-    pos,
+    { x: AISLE_X, y: ENTRANCE.y },  // step into right aisle
+    { x: AISLE_X, y: hy },           // travel aisle to corridor
+    { x: pos.x,   y: hy },           // walk corridor to table column
+    pos,                              // arrive at table
   ];
 }
 
@@ -98,8 +91,7 @@ function buildRoundedPath(pts: Pt[], r = 14): string {
     const b   = { x: curr.x + ux2 * rr, y: curr.y + uy2 * rr };
     d += ` L ${a.x.toFixed(1)},${a.y.toFixed(1)} Q ${curr.x},${curr.y} ${b.x.toFixed(1)},${b.y.toFixed(1)}`;
   }
-  const last = pts[pts.length - 1];
-  d += ` L ${last.x},${last.y}`;
+  d += ` L ${pts[pts.length - 1].x},${pts[pts.length - 1].y}`;
   return d;
 }
 
@@ -125,7 +117,6 @@ function AnimatedPath({ tableNum }: { tableNum: number }) {
 
   if (!d) return null;
   const pid = `rp${tableNum}`;
-
   return (
     <g>
       <path d={d} fill="none" stroke="white" strokeWidth="12"
@@ -249,110 +240,106 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
         <rect x="1" y="1" width={VP_W-2} height={VP_H-2} rx="12"
           fill="url(#roomBg)" stroke="rgba(201,168,76,0.35)" strokeWidth="2" />
 
-        {/* Entrance gap in LEFT wall */}
-        <rect x="0" y="338" width="5" height="36" fill="url(#roomBg)" />
+        {/* Entrance gap — right wall */}
+        <rect x={VP_W-3} y={206} width="5" height="36" fill="url(#roomBg)" />
 
-        {/* ── Poruwa — top-left (near T16, T17) ───────────────────────────── */}
-        <rect x="4" y="5" width="80" height="58" rx="7"
+        {/* ── Photographers table — top-left ────────────────────────────────── */}
+        <rect x="4" y="5" width="90" height="55" rx="7"
           fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
           strokeDasharray="6,3" />
-        <polygon points="44,13 52,21 44,29 36,21"
-          fill="none" stroke="rgba(201,168,76,0.7)" strokeWidth="1.2" />
-        <polygon points="44,16 49,21 44,26 39,21"
-          fill="rgba(201,168,76,0.25)" stroke="rgba(201,168,76,0.55)" strokeWidth="0.8" />
-        <text x="44" y="40" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8.5" fontWeight="800" fill="#7a5010"
-          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PORUWA</text>
-        <text x="44" y="54" textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.5" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>CEREMONY</text>
-
-        {/* ── Bar — top-right (beside T12 & T14) ──────────────────────────── */}
-        <rect x="319" y="5" width="73" height="160" rx="7"
-          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
-          strokeDasharray="6,3" />
-        <text x="356" y="42" textAnchor="middle" dominantBaseline="middle"
-          fontSize="13" style={{ userSelect: "none" }}>🍹</text>
-        <text x="356" y="62" textAnchor="middle" dominantBaseline="middle"
-          fontSize="9" fontWeight="800" fill="#7a5010"
-          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAR</text>
-        <text x="356" y="77" textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.5" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>LOUNGE</text>
-        <line x1="325" y1="92" x2="388" y2="92"
-          stroke="rgba(201,168,76,0.35)" strokeWidth="0.8" strokeDasharray="4,3" />
-        <text x="356" y="115" textAnchor="middle" dominantBaseline="middle"
-          fontSize="10" style={{ userSelect: "none" }}>📷</text>
-        <text x="356" y="134" textAnchor="middle" dominantBaseline="middle"
-          fontSize="7.5" fontWeight="700" fill="#7a5010"
-          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PHOTO</text>
-        <text x="356" y="148" textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.5" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>BOOTH</text>
-
-        {/* ── Settee — right wall (vertical strip) ─────────────────────────── */}
-        <rect x="364" y="193" width="28" height="152" rx="6"
-          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
-          strokeDasharray="5,3" />
-        <text x="378" y="269"
-          textAnchor="middle" dominantBaseline="middle"
+        <text x="49" y="24" textAnchor="middle" dominantBaseline="middle"
+          fontSize="9" style={{ userSelect: "none" }}>📸</text>
+        <text x="49" y="40" textAnchor="middle" dominantBaseline="middle"
           fontSize="7" fontWeight="800" fill="#7a5010"
-          fontFamily="'Playfair Display', serif"
-          transform="rotate(90 378 269)"
-          style={{ userSelect: "none" }}>SETTEE</text>
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PHOTO</text>
+        <text x="49" y="52" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.65)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>GRAPHERS</text>
 
-        {/* ── Bottom zones ─────────────────────────────────────────────────── */}
-        {/* Band — bottom-left */}
-        <rect x="4" y="403" width="105" height="98" rx="7"
-          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.45)" strokeWidth="1.5"
-          strokeDasharray="6,3" />
-        <text x="56" y="436" textAnchor="middle" dominantBaseline="middle"
-          fontSize="11" style={{ userSelect: "none" }}>🎸</text>
-        <text x="56" y="456" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8.5" fontWeight="800" fill="#7a5010"
-          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAND</text>
-        <text x="56" y="470" textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.8" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>STAGE AREA</text>
-
-        {/* Dancing floor — bottom-centre */}
-        <rect x="115" y="403" width="170" height="42" rx="6"
-          fill="url(#danceGrad)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5"
-          strokeDasharray="7,4" />
-        <text x="200" y="424" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8.5" fontWeight="700" fill="#8b6914"
-          fontFamily="'Lato', sans-serif" letterSpacing="2" style={{ userSelect: "none" }}>
-          ✦ DANCING FLOOR ✦
-        </text>
-
-        {/* Stage — bottom-centre below dancing */}
-        <rect x="115" y="450" width="170" height="50" rx="7"
+        {/* ── Stage — top-centre ────────────────────────────────────────────── */}
+        <rect x="138" y="5" width="118" height="38" rx="7"
           fill="url(#stageGrad)" stroke="rgba(180,130,30,0.6)" strokeWidth="1.5" />
-        <text x="200" y="468" textAnchor="middle" dominantBaseline="middle"
+        <text x="197" y="19" textAnchor="middle" dominantBaseline="middle"
           fontSize="9" fontWeight="800" fill="rgba(255,255,255,0.97)"
           fontFamily="'Lato', sans-serif" letterSpacing="2" style={{ userSelect: "none" }}>
           ♪ STAGE ♪
         </text>
-        <text x="200" y="484" textAnchor="middle" dominantBaseline="middle"
-          fontSize="6.5" fill="rgba(255,224,120,0.9)"
+        <text x="197" y="33" textAnchor="middle" dominantBaseline="middle"
+          fontSize="6" fill="rgba(255,224,120,0.9)"
           fontFamily="'Lato', sans-serif" letterSpacing="1.5" style={{ userSelect: "none" }}>
           ✦ NUSHAN &amp; DINESHKA ✦
         </text>
 
-        {/* Gift / cake table — bottom-right */}
-        <rect x="288" y="403" width="104" height="98" rx="7"
-          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.45)" strokeWidth="1.5"
+        {/* ── Band table — top-right ────────────────────────────────────────── */}
+        <rect x="300" y="5" width="92" height="55" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
           strokeDasharray="6,3" />
-        <text x="340" y="436" textAnchor="middle" dominantBaseline="middle"
-          fontSize="13" style={{ userSelect: "none" }}>🎂</text>
-        <text x="340" y="458" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8.5" fontWeight="800" fill="#7a5010"
-          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>CAKE</text>
-        <text x="340" y="472" textAnchor="middle" dominantBaseline="middle"
-          fontSize="5.8" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>& GIFTS</text>
+        <text x="346" y="24" textAnchor="middle" dominantBaseline="middle"
+          fontSize="9" style={{ userSelect: "none" }}>🎸</text>
+        <text x="346" y="40" textAnchor="middle" dominantBaseline="middle"
+          fontSize="7.5" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAND</text>
+        <text x="346" y="52" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.65)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>TABLE</text>
 
-        {/* ── Route ────────────────────────────────────────────────────────── */}
+        {/* ── Dancing floor — below stage ───────────────────────────────────── */}
+        <rect x="133" y="48" width="128" height="45" rx="6"
+          fill="url(#danceGrad)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5"
+          strokeDasharray="7,4" />
+        <text x="197" y="71" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8" fontWeight="700" fill="#8b6914"
+          fontFamily="'Lato', sans-serif" letterSpacing="1.5" style={{ userSelect: "none" }}>
+          ✦ DANCING FLOOR ✦
+        </text>
+
+        {/* ── Settee — left side, below Row B ──────────────────────────────── */}
+        <rect x="4" y="250" width="84" height="62" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <polygon points="46,260 53,267 46,274 39,267"
+          fill="none" stroke="rgba(201,168,76,0.65)" strokeWidth="1.2" />
+        <polygon points="46,263 50,267 46,271 42,267"
+          fill="rgba(201,168,76,0.22)" stroke="rgba(201,168,76,0.5)" strokeWidth="0.8" />
+        <text x="46" y="287" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>SETTEE</text>
+        <text x="46" y="301" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.8" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>COUPLE&apos;S SEAT</text>
+
+        {/* ── Bar — left side, below settee ────────────────────────────────── */}
+        <rect x="4" y="320" width="84" height="72" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <text x="46" y="344" textAnchor="middle" dominantBaseline="middle"
+          fontSize="11" style={{ userSelect: "none" }}>🍹</text>
+        <text x="46" y="364" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8.5" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAR</text>
+        <text x="46" y="379" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.8" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>LOUNGE</text>
+
+        {/* ── Poruwa — bottom-right ─────────────────────────────────────────── */}
+        <rect x="278" y="378" width="114" height="118" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <polygon points="335,390 344,399 335,408 326,399"
+          fill="none" stroke="rgba(201,168,76,0.7)" strokeWidth="1.2" />
+        <polygon points="335,393 341,399 335,405 329,399"
+          fill="rgba(201,168,76,0.25)" stroke="rgba(201,168,76,0.55)" strokeWidth="0.8" />
+        <text x="335" y="425" textAnchor="middle" dominantBaseline="middle"
+          fontSize="9" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PORUWA</text>
+        <text x="335" y="441" textAnchor="middle" dominantBaseline="middle"
+          fontSize="6" fill="rgba(139,105,20,0.65)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>CEREMONY</text>
+        <text x="335" y="455" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.5)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>✦ ✦ ✦</text>
+
+        {/* ── Route (drawn before tables so pin sits on top) ─────────────────── */}
         <AnimatedPath tableNum={selectedTable} />
 
         {/* ── Tables ───────────────────────────────────────────────────────── */}
@@ -361,7 +348,7 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
           return <TablePin key={n} n={n} pos={pos} selected={n === selectedTable} />;
         })}
 
-        {/* ── Entrance dot — left wall ─────────────────────────────────────── */}
+        {/* ── Entrance dot — right wall ─────────────────────────────────────── */}
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={16}
           fill="rgba(52,168,83,0.28)" className="entr-ring" />
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={9.5} fill="white"
@@ -369,20 +356,20 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={7.5} fill="url(#entrDot)"
           style={{ filter: "drop-shadow(0 0 6px rgba(52,168,83,0.8))" }} />
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={2.8} fill="white" />
-        <text x={ENTRANCE.x + 44} y={ENTRANCE.y - 14}
-          textAnchor="middle" dominantBaseline="middle"
+        <text x={ENTRANCE.x - 14} y={ENTRANCE.y - 16}
+          textAnchor="end" dominantBaseline="middle"
           fontSize="6" fontWeight="800" fill="#15803d"
           fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>
           YOU ARE HERE
         </text>
-        <line x1={ENTRANCE.x + 20} y1={ENTRANCE.y - 9}
-              x2={ENTRANCE.x + 10} y2={ENTRANCE.y - 3}
+        <line x1={ENTRANCE.x - 13} y1={ENTRANCE.y - 10}
+              x2={ENTRANCE.x - 9}  y2={ENTRANCE.y - 4}
           stroke="#15803d" strokeWidth="0.9" strokeOpacity="0.5" />
-        <text x={ENTRANCE.x + 20} y={ENTRANCE.y + 15}
-          textAnchor="start" dominantBaseline="middle"
+        <text x={ENTRANCE.x - 14} y={ENTRANCE.y + 14}
+          textAnchor="end" dominantBaseline="middle"
           fontSize="6" fontWeight="700" fill="#15803d"
           fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>
-          ↗ ENTRY 1
+          ↙ ENTRY
         </text>
       </svg>
     </>
