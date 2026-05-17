@@ -164,30 +164,29 @@ function TablePin({ n, pos, selected }: { n: number; pos: Pt; selected: boolean 
 
   return (
     <g transform={`translate(${pos.x},${pos.y})`}>
-      {/* Expanding pulse rings at pin base */}
-      <circle cx={0} cy={0} r={8} fill="rgba(201,168,76,0.4)" className="pin-r2" />
-      <circle cx={0} cy={0} r={16} fill="none"
-        stroke="rgba(201,168,76,0.7)" strokeWidth="2" className="pin-r1" />
-      <circle cx={0} cy={0} r={26} fill="none"
-        stroke="rgba(201,168,76,0.35)" strokeWidth="1.5" className="pin-r0" />
-
       {/* Ground shadow */}
-      <ellipse cx={1.5} cy={3} rx={11} ry={4}
-        fill="rgba(0,0,0,0.25)" style={{ filter: "blur(3px)" }} />
+      <ellipse cx={1.5} cy={3} rx={12} ry={4}
+        fill="rgba(0,0,0,0.28)" style={{ filter: "blur(3px)" }} />
 
-      {/* Pin body */}
+      {/* Red glowing pin body */}
       <path d={PIN_D}
-        fill="url(#pinFill)"
+        fill="url(#pinRed)"
         stroke="white" strokeWidth="2.5" strokeLinejoin="round"
-        style={{ filter: "drop-shadow(0 5px 12px rgba(0,0,0,0.4))" }} />
+        className="pin-glow" />
 
-      {/* White circle inside pin head (Google Maps style) */}
-      <circle cx={0} cy={PCY} r={PR * 0.38} fill="white" opacity="0.95" />
+      {/* Rotating dashed ring around pin head */}
+      <circle cx={0} cy={PCY} r={PR + 6}
+        fill="none" stroke="rgba(234,67,53,0.7)" strokeWidth="1.8"
+        strokeDasharray="5 4"
+        className="pin-rotate" />
 
-      {/* Table number */}
-      <text x={0} y={PCY + 0.5} textAnchor="middle" dominantBaseline="middle"
-        fontSize={n >= 10 ? "8.5" : "10"} fontWeight="900"
-        fill="url(#pinFill)" fontFamily="'Playfair Display', serif"
+      {/* White circle inside pin head */}
+      <circle cx={0} cy={PCY} r={PR * 0.52} fill="white" />
+
+      {/* Table number — red, bold, clearly visible */}
+      <text x={0} y={PCY + 0.8} textAnchor="middle" dominantBaseline="middle"
+        fontSize={n >= 10 ? "9.5" : "11"} fontWeight="900"
+        fill="#c0392b" fontFamily="'Playfair Display', serif"
         style={{ userSelect: "none" }}>{n}</text>
     </g>
   );
@@ -198,19 +197,21 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
   return (
     <>
       <style>{`
-        @keyframes pinExpand {
-          0%   { transform: scale(1);   opacity: 0.85; }
-          80%  { transform: scale(2.4); opacity: 0;    }
-          100% { transform: scale(2.4); opacity: 0;    }
+        @keyframes pinGlow {
+          0%,100% { filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45)) drop-shadow(0 0 6px rgba(234,67,53,0.5)); }
+          50%     { filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45)) drop-shadow(0 0 18px rgba(234,67,53,1)); }
+        }
+        @keyframes pinRotate {
+          from { transform: rotate(0deg);   }
+          to   { transform: rotate(360deg); }
         }
         @keyframes entrancePulse {
           0%,100% { opacity: 0.5; transform: scale(1);   }
           60%     { opacity: 0;   transform: scale(1.9); }
         }
-        .pin-r0 { transform-origin: center; animation: pinExpand 1.8s 0.0s ease-out infinite; }
-        .pin-r1 { transform-origin: center; animation: pinExpand 1.8s 0.4s ease-out infinite; }
-        .pin-r2 { transform-origin: center; animation: pinExpand 1.8s 0.8s ease-out infinite; }
-        .entr-ring { transform-origin: center; animation: entrancePulse 1.5s ease-out infinite; }
+        .pin-glow   { animation: pinGlow   2s ease-in-out infinite; }
+        .pin-rotate { transform-origin: 0px -30px; animation: pinRotate 3s linear infinite; }
+        .entr-ring  { transform-origin: center; animation: entrancePulse 1.5s ease-out infinite; }
       `}</style>
 
       <svg viewBox={`0 0 ${VP_W} ${VP_H}`} width="100%"
@@ -222,10 +223,10 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
             <stop offset="0%"   stopColor="#43e97b" />
             <stop offset="100%" stopColor="#38f9d7" />
           </linearGradient>
-          <linearGradient id="pinFill" x1="0" y1="0" x2="0.4" y2="1">
-            <stop offset="0%"   stopColor="#fde68a" />
-            <stop offset="35%"  stopColor="#d4a017" />
-            <stop offset="100%" stopColor="#7c4a00" />
+          <linearGradient id="pinRed" x1="0" y1="0" x2="0.4" y2="1">
+            <stop offset="0%"   stopColor="#ff6b6b" />
+            <stop offset="40%"  stopColor="#ea4335" />
+            <stop offset="100%" stopColor="#8b0000" />
           </linearGradient>
           <radialGradient id="tblNorm" cx="35%" cy="30%">
             <stop offset="0%"   stopColor="#fffdf0" />
@@ -422,8 +423,8 @@ export function SeatingMapModal({ tableNumber, onClose }: { tableNumber: number;
             </div>
             <div className="flex items-center gap-1.5">
               <svg width="10" height="14" viewBox="-12 -48 24 52">
-                <path d={PIN_D} fill="#d4a017" stroke="white" strokeWidth="2.5" />
-                <circle cx="0" cy={PCY} r={PR * 0.38} fill="white" />
+                <path d={PIN_D} fill="#ea4335" stroke="white" strokeWidth="2.5" />
+                <circle cx="0" cy={PCY} r={PR * 0.52} fill="white" />
               </svg>
               <span style={{ fontFamily: "'Lato',sans-serif", fontSize: "11px", color: "#5c3d0e" }}>Your Table</span>
             </div>
