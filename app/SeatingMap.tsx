@@ -8,58 +8,79 @@ const VP_H = 510;
 interface Pt { x: number; y: number; }
 
 // ─── Table positions ──────────────────────────────────────────────────────────
+// Col L (x=65):  T16,T17,T13,T11,T10   (top → bottom, left wall)
+// Col CL(x=135): T09,T07
+// Col C (x=195): T08,T15
+// Col CR(x=250): T05,T06
+// Col R (x=300): T12,T14,T03,T02,T01   (right side)
+// Col FR(x=340): T04                   (far right, next to T03)
+//
+// Row A y= 85:  T16, T08, T12
+// Row B y=150:  T17, T15, T14
+// Row C y=210:  T09, T05, T03, T04
+// Row D y=270:  T13, T07, T06
+// Row E y=325:  T11, T02
+// Row F y=380:  T10, T01
+//
+// Aisles (clear of all table circles ±17):
+//   y= 55 (above row A)      row A top  = 68
+//   y=118 (A→B)              97 < 118 < 133
+//   y=180 (B→C)             167 < 180 < 193
+//   y=240 (C→D)             227 < 240 < 253
+//   y=300 (D→E)             287 < 300 < 308
+//   y=356 (E→F = entrance)  342 < 356 < 363
 const TABLE_POS: Record<number, Pt> = {
-  16: { x: 322, y:  72 },
-   1: { x:  72, y: 132 },  2: { x: 152, y: 132 },  3: { x: 232, y: 132 },  4: { x: 312, y: 132 },
-   5: { x:  72, y: 204 },  6: { x: 152, y: 204 },  7: { x: 232, y: 204 },  8: { x: 312, y: 204 },
-   9: { x:  72, y: 276 }, 10: { x: 152, y: 276 }, 11: { x: 232, y: 276 }, 12: { x: 312, y: 276 },
-  13: { x: 152, y: 348 }, 14: { x: 232, y: 348 }, 15: { x: 312, y: 348 },
-  17: { x: 312, y: 420 },
+  16: { x:  65, y:  85 },
+   8: { x: 195, y:  85 },
+  12: { x: 300, y:  85 },
+  17: { x:  65, y: 150 },
+  15: { x: 195, y: 150 },
+  14: { x: 300, y: 150 },
+   9: { x: 135, y: 210 },
+   5: { x: 250, y: 210 },
+   3: { x: 300, y: 210 },
+   4: { x: 340, y: 210 },
+  13: { x:  65, y: 270 },
+   7: { x: 135, y: 270 },
+   6: { x: 250, y: 270 },
+  11: { x:  65, y: 325 },
+   2: { x: 300, y: 325 },
+  10: { x:  65, y: 380 },
+   1: { x: 300, y: 380 },
 };
 
-// Entrance: right wall at Row-B level
-const ENTRANCE: Pt = { x: 390, y: 204 };
-const AISLE_X      = 354; // right vertical aisle, clear of all tables
+// Entrance: LEFT wall, between rows E and F
+const ENTRANCE: Pt = { x: 8, y: 356 };
+const AISLE_X      = 30; // left vertical aisle (clear: tables start at x=65-17=48)
 
-// ─── Horizontal aisles (corridors BETWEEN rows — no table circles) ─────────────
-// Row A tables y=132 ±17 → edge at 115/149
-// Row B tables y=204 ±17 → edge at 187/221
-// Row C tables y=276 ±17 → edge at 259/293
-// Row D tables y=348 ±17 → edge at 331/365
-// T17        y=420 ±17 → edge at 403/437
-// T16        y= 72 ±17 → edge at  55/ 89
 function getHAisle(n: number): number {
-  if (n === 16)                  return 102;   // above Row A (Row A top=115)
-  if (n >= 1 && n <= 4)          return 102;   // approach Row A from above
-  if (n >= 5 && n <= 7)          return 168;   // between Row A (bottom=149) and Row B (top=187)
-  if (n === 8)                   return 204;   // same row as entrance — direct right aisle
-  if (n >= 9  && n <= 12)        return 238;   // between Row B (bottom=221) and Row C (top=259)
-  if (n >= 13 && n <= 15)        return 310;   // between Row C (bottom=293) and Row D (top=331)
-  if (n === 17)                  return 383;   // between Row D (bottom=365) and T17 (top=403)
-  return 168;
+  const y = TABLE_POS[n]?.y ?? 356;
+  if (y <=  85) return  55;
+  if (y <= 150) return 118;
+  if (y <= 210) return 180;
+  if (y <= 270) return 240;
+  if (y <= 325) return 300;
+  return 356; // entrance level — row F tables
 }
 
-// ─── Build waypoints (path goes through aisles, never through tables) ─────────
 function getWaypoints(tableNum: number): Pt[] {
   const pos = TABLE_POS[tableNum];
   if (!pos) return [];
-
-  if (tableNum === 8) {
-    // Table 8 is directly right of the aisle at the same row — no detour needed
-    return [ENTRANCE, { x: AISLE_X, y: 204 }, pos];
-  }
-
   const hy = getHAisle(tableNum);
+  // Row F shares y-level with entrance — go directly right
+  if (hy === ENTRANCE.y) {
+    return [ENTRANCE, { x: pos.x, y: ENTRANCE.y }, pos];
+  }
   return [
     ENTRANCE,
-    { x: AISLE_X, y: ENTRANCE.y }, // enter right aisle
-    { x: AISLE_X, y: hy },          // travel right aisle to horizontal corridor
-    { x: pos.x,   y: hy },          // walk along corridor to table's column
-    pos,                             // arrive at table
+    { x: AISLE_X, y: ENTRANCE.y }, // step into left aisle
+    { x: AISLE_X, y: hy },          // travel aisle to corridor
+    { x: pos.x,   y: hy },          // walk corridor to table column
+    pos,
   ];
 }
 
-// ─── Rounded-corner SVG path (Google Maps smooth turns) ───────────────────────
+// ─── Rounded-corner path ──────────────────────────────────────────────────────
 function buildRoundedPath(pts: Pt[], r = 14): string {
   if (pts.length < 2) return "";
   let d = `M ${pts[0].x},${pts[0].y}`;
@@ -69,6 +90,7 @@ function buildRoundedPath(pts: Pt[], r = 14): string {
     const len1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
     const dx2 = next.x - curr.x, dy2 = next.y - curr.y;
     const len2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    if (len1 === 0 || len2 === 0) continue;
     const rr  = Math.min(r, len1 / 2, len2 / 2);
     const ux1 = dx1 / len1, uy1 = dy1 / len1;
     const ux2 = dx2 / len2, uy2 = dy2 / len2;
@@ -81,7 +103,7 @@ function buildRoundedPath(pts: Pt[], r = 14): string {
   return d;
 }
 
-// ─── Animated route (Google Maps style) ──────────────────────────────────────
+// ─── Animated route ───────────────────────────────────────────────────────────
 function AnimatedPath({ tableNum }: { tableNum: number }) {
   const ref             = useRef<SVGPathElement>(null);
   const [len, setLen]   = useState(3000);
@@ -106,35 +128,23 @@ function AnimatedPath({ tableNum }: { tableNum: number }) {
 
   return (
     <g>
-      {/* White shadow underline */}
       <path d={d} fill="none" stroke="white" strokeWidth="12"
         strokeLinecap="round" strokeLinejoin="round" strokeOpacity="0.8" />
-      {/* Dark green border for depth */}
       <path d={d} fill="none" stroke="#1a5c28" strokeWidth="8.5"
         strokeLinecap="round" strokeLinejoin="round" opacity="0.35" />
-      {/* Main bright green route */}
       <path ref={ref} id={pid} d={d} fill="none"
         stroke="url(#gRoute)" strokeWidth="6"
         strokeLinecap="round" strokeLinejoin="round"
         strokeDasharray={len} strokeDashoffset={off}
-        style={{
-          transition: off === 0
-            ? "stroke-dashoffset 1.5s cubic-bezier(0.25,0.46,0.45,0.94)"
-            : "none",
-        }}
+        style={{ transition: off === 0 ? "stroke-dashoffset 1.5s cubic-bezier(0.25,0.46,0.45,0.94)" : "none" }}
       />
-      {/* Moving white dot (direction indicator) */}
       {done && (
         <g>
           <circle r="6" fill="white" opacity="0.9">
-            <animateMotion dur="2.2s" repeatCount="indefinite">
-              <mpath href={`#${pid}`} />
-            </animateMotion>
+            <animateMotion dur="2.2s" repeatCount="indefinite"><mpath href={`#${pid}`} /></animateMotion>
           </circle>
           <circle r="3.5" fill="url(#gRoute)" opacity="0.95">
-            <animateMotion dur="2.2s" repeatCount="indefinite">
-              <mpath href={`#${pid}`} />
-            </animateMotion>
+            <animateMotion dur="2.2s" repeatCount="indefinite"><mpath href={`#${pid}`} /></animateMotion>
           </circle>
         </g>
       )}
@@ -142,8 +152,7 @@ function AnimatedPath({ tableNum }: { tableNum: number }) {
   );
 }
 
-// ─── Google-Maps destination pin ──────────────────────────────────────────────
-// Tip at (0,0), circle head centred at (0, PCY)
+// ─── Destination pin ──────────────────────────────────────────────────────────
 const PR  = 16;
 const PCY = -30;
 const PIN_D = `M 0,0 C -6,-7 -${PR},-15 -${PR},${PCY} A ${PR},${PR} 0 1 1 ${PR},${PCY} C ${PR},-15 6,-7 0,0 Z`;
@@ -161,29 +170,16 @@ function TablePin({ n, pos, selected }: { n: number; pos: Pt; selected: boolean 
       </g>
     );
   }
-
   return (
     <g transform={`translate(${pos.x},${pos.y})`}>
-      {/* Ground shadow */}
       <ellipse cx={1.5} cy={3} rx={12} ry={4}
         fill="rgba(0,0,0,0.28)" style={{ filter: "blur(3px)" }} />
-
-      {/* Red glowing pin body */}
-      <path d={PIN_D}
-        fill="url(#pinRed)"
-        stroke="white" strokeWidth="2.5" strokeLinejoin="round"
-        className="pin-glow" />
-
-      {/* Rotating dashed ring around pin head */}
+      <path d={PIN_D} fill="url(#pinRed)" stroke="white" strokeWidth="2.5"
+        strokeLinejoin="round" className="pin-glow" />
       <circle cx={0} cy={PCY} r={PR + 6}
         fill="none" stroke="rgba(234,67,53,0.7)" strokeWidth="1.8"
-        strokeDasharray="5 4"
-        className="pin-rotate" />
-
-      {/* White circle inside pin head */}
+        strokeDasharray="5 4" className="pin-rotate" />
       <circle cx={0} cy={PCY} r={PR * 0.52} fill="white" />
-
-      {/* Table number — red, bold, clearly visible */}
       <text x={0} y={PCY + 0.8} textAnchor="middle" dominantBaseline="middle"
         fontSize={n >= 10 ? "9.5" : "11"} fontWeight="900"
         fill="#c0392b" fontFamily="'Playfair Display', serif"
@@ -192,7 +188,7 @@ function TablePin({ n, pos, selected }: { n: number; pos: Pt; selected: boolean 
   );
 }
 
-// ─── Full SVG map ─────────────────────────────────────────────────────────────
+// ─── SVG map ──────────────────────────────────────────────────────────────────
 function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
   return (
     <>
@@ -202,14 +198,13 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
           50%     { filter: drop-shadow(0 5px 10px rgba(0,0,0,0.45)) drop-shadow(0 0 18px rgba(234,67,53,1)); }
         }
         @keyframes pinRotate {
-          from { transform: rotate(0deg);   }
-          to   { transform: rotate(360deg); }
+          from { transform: rotate(0deg); } to { transform: rotate(360deg); }
         }
         @keyframes entrancePulse {
-          0%,100% { opacity: 0.5; transform: scale(1);   }
+          0%,100% { opacity: 0.5; transform: scale(1); }
           60%     { opacity: 0;   transform: scale(1.9); }
         }
-        .pin-glow   { animation: pinGlow   2s ease-in-out infinite; }
+        .pin-glow   { animation: pinGlow 2s ease-in-out infinite; }
         .pin-rotate { transform-origin: 0px -30px; animation: pinRotate 3s linear infinite; }
         .entr-ring  { transform-origin: center; animation: entrancePulse 1.5s ease-out infinite; }
       `}</style>
@@ -242,7 +237,7 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
           </linearGradient>
           <linearGradient id="danceGrad" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%"   stopColor="rgba(255,252,228,0.95)" />
-            <stop offset="100%" stopColor="rgba(253,233,160,0.7)"  />
+            <stop offset="100%" stopColor="rgba(253,233,160,0.7)" />
           </linearGradient>
           <radialGradient id="entrDot">
             <stop offset="0%"   stopColor="#86efac" />
@@ -250,101 +245,145 @@ function SeatingMapSVG({ selectedTable }: { selectedTable: number }) {
           </radialGradient>
         </defs>
 
-        {/* Room */}
+        {/* ── Room ─────────────────────────────────────────────────────────── */}
         <rect x="1" y="1" width={VP_W-2} height={VP_H-2} rx="12"
           fill="url(#roomBg)" stroke="rgba(201,168,76,0.35)" strokeWidth="2" />
 
-        {/* Entrance gap */}
-        <rect x={VP_W-2} y={186} width="4" height="38" fill="url(#roomBg)" />
-        <text x={VP_W-9} y={205} textAnchor="end" dominantBaseline="middle"
-          fontSize="6.5" fontWeight="700" fill="#15803d"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>
-          ↙ ENTRANCE
-        </text>
+        {/* Entrance gap in LEFT wall */}
+        <rect x="0" y="338" width="5" height="36" fill="url(#roomBg)" />
 
-        {/* Stage */}
-        <rect x="100" y="6" width="170" height="36" rx="7"
-          fill="url(#stageGrad)" stroke="rgba(180,130,30,0.6)" strokeWidth="1.5" />
-        <text x="185" y="20" textAnchor="middle" dominantBaseline="middle"
-          fontSize="9" fontWeight="800" fill="rgba(255,255,255,0.97)"
-          fontFamily="'Lato', sans-serif" letterSpacing="2" style={{ userSelect: "none" }}>
-          ♪ BAND STAGE ♪
-        </text>
-        <text x="185" y="34" textAnchor="middle" dominantBaseline="middle"
-          fontSize="6.5" fill="rgba(255,224,120,0.9)"
-          fontFamily="'Lato', sans-serif" letterSpacing="1.5" style={{ userSelect: "none" }}>
-          ✦ NUSHAN &amp; DINESHKA ✦
-        </text>
+        {/* ── Poruwa — top-left (near T16, T17) ───────────────────────────── */}
+        <rect x="4" y="5" width="80" height="58" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <polygon points="44,13 52,21 44,29 36,21"
+          fill="none" stroke="rgba(201,168,76,0.7)" strokeWidth="1.2" />
+        <polygon points="44,16 49,21 44,26 39,21"
+          fill="rgba(201,168,76,0.25)" stroke="rgba(201,168,76,0.55)" strokeWidth="0.8" />
+        <text x="44" y="40" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8.5" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PORUWA</text>
+        <text x="44" y="54" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>CEREMONY</text>
 
-        {/* Dancing Floor */}
-        <rect x="50" y="48" width="240" height="38" rx="6"
-          fill="url(#danceGrad)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5" strokeDasharray="7,4" />
-        <text x="170" y="67" textAnchor="middle" dominantBaseline="middle"
+        {/* ── Bar — top-right (beside T12 & T14) ──────────────────────────── */}
+        <rect x="319" y="5" width="73" height="160" rx="7"
+          fill="rgba(255,248,220,0.6)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <text x="356" y="42" textAnchor="middle" dominantBaseline="middle"
+          fontSize="13" style={{ userSelect: "none" }}>🍹</text>
+        <text x="356" y="62" textAnchor="middle" dominantBaseline="middle"
+          fontSize="9" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAR</text>
+        <text x="356" y="77" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>LOUNGE</text>
+        <line x1="325" y1="92" x2="388" y2="92"
+          stroke="rgba(201,168,76,0.35)" strokeWidth="0.8" strokeDasharray="4,3" />
+        <text x="356" y="115" textAnchor="middle" dominantBaseline="middle"
+          fontSize="10" style={{ userSelect: "none" }}>📷</text>
+        <text x="356" y="134" textAnchor="middle" dominantBaseline="middle"
+          fontSize="7.5" fontWeight="700" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>PHOTO</text>
+        <text x="356" y="148" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.5" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>BOOTH</text>
+
+        {/* ── Settee — right wall (vertical strip) ─────────────────────────── */}
+        <rect x="364" y="193" width="28" height="152" rx="6"
+          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.55)" strokeWidth="1.5"
+          strokeDasharray="5,3" />
+        <text x="378" y="269"
+          textAnchor="middle" dominantBaseline="middle"
+          fontSize="7" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif"
+          transform="rotate(90 378 269)"
+          style={{ userSelect: "none" }}>SETTEE</text>
+
+        {/* ── Bottom zones ─────────────────────────────────────────────────── */}
+        {/* Band — bottom-left */}
+        <rect x="4" y="403" width="105" height="98" rx="7"
+          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.45)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <text x="56" y="436" textAnchor="middle" dominantBaseline="middle"
+          fontSize="11" style={{ userSelect: "none" }}>🎸</text>
+        <text x="56" y="456" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8.5" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>BAND</text>
+        <text x="56" y="470" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.8" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>STAGE AREA</text>
+
+        {/* Dancing floor — bottom-centre */}
+        <rect x="115" y="403" width="170" height="42" rx="6"
+          fill="url(#danceGrad)" stroke="rgba(201,168,76,0.5)" strokeWidth="1.5"
+          strokeDasharray="7,4" />
+        <text x="200" y="424" textAnchor="middle" dominantBaseline="middle"
           fontSize="8.5" fontWeight="700" fill="#8b6914"
           fontFamily="'Lato', sans-serif" letterSpacing="2" style={{ userSelect: "none" }}>
           ✦ DANCING FLOOR ✦
         </text>
 
-        {/* Zone labels */}
-        <text x="5" y="67" textAnchor="start" dominantBaseline="middle"
-          fontSize="6.5" fontWeight="700" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>PORUWA</text>
-
-        <text x="5" y="272" textAnchor="start" dominantBaseline="middle"
-          fontSize="5.8" fontWeight="700" fill="rgba(139,105,20,0.5)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>SETTIE</text>
-        <text x="5" y="281" textAnchor="start" dominantBaseline="middle"
-          fontSize="5.8" fontWeight="700" fill="rgba(139,105,20,0.5)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>BACK</text>
-
-        <rect x="4" y="404" width="60" height="30" rx="5"
-          fill="rgba(255,248,220,0.7)" stroke="rgba(201,168,76,0.4)" strokeWidth="1.2" />
-        <text x="34" y="416" textAnchor="middle" dominantBaseline="middle"
-          fontSize="6" fontWeight="700" fill="#8b6914"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>HEAD</text>
-        <text x="34" y="426" textAnchor="middle" dominantBaseline="middle"
-          fontSize="6" fontWeight="700" fill="#8b6914"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>TABLE</text>
-
-        <text x={VP_W-6} y="420" textAnchor="end" dominantBaseline="middle"
-          fontSize="6.5" fontWeight="700" fill="rgba(139,105,20,0.6)"
-          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>🍹 BAR</text>
-
-        <rect x="95" y="468" width="200" height="30" rx="6"
-          fill="rgba(255,248,220,0.75)" stroke="rgba(201,168,76,0.45)" strokeWidth="1.5" />
-        <text x="195" y="483" textAnchor="middle" dominantBaseline="middle"
-          fontSize="8" fontWeight="700" fill="#8b6914"
+        {/* Stage — bottom-centre below dancing */}
+        <rect x="115" y="450" width="170" height="50" rx="7"
+          fill="url(#stageGrad)" stroke="rgba(180,130,30,0.6)" strokeWidth="1.5" />
+        <text x="200" y="468" textAnchor="middle" dominantBaseline="middle"
+          fontSize="9" fontWeight="800" fill="rgba(255,255,255,0.97)"
           fontFamily="'Lato', sans-serif" letterSpacing="2" style={{ userSelect: "none" }}>
-          🍽 BUFFET
+          ♪ STAGE ♪
+        </text>
+        <text x="200" y="484" textAnchor="middle" dominantBaseline="middle"
+          fontSize="6.5" fill="rgba(255,224,120,0.9)"
+          fontFamily="'Lato', sans-serif" letterSpacing="1.5" style={{ userSelect: "none" }}>
+          ✦ NUSHAN &amp; DINESHKA ✦
         </text>
 
-        {/* Route drawn BEFORE tables so pin sits on top */}
+        {/* Gift / cake table — bottom-right */}
+        <rect x="288" y="403" width="104" height="98" rx="7"
+          fill="rgba(255,248,220,0.55)" stroke="rgba(201,168,76,0.45)" strokeWidth="1.5"
+          strokeDasharray="6,3" />
+        <text x="340" y="436" textAnchor="middle" dominantBaseline="middle"
+          fontSize="13" style={{ userSelect: "none" }}>🎂</text>
+        <text x="340" y="458" textAnchor="middle" dominantBaseline="middle"
+          fontSize="8.5" fontWeight="800" fill="#7a5010"
+          fontFamily="'Playfair Display', serif" style={{ userSelect: "none" }}>CAKE</text>
+        <text x="340" y="472" textAnchor="middle" dominantBaseline="middle"
+          fontSize="5.8" fill="rgba(139,105,20,0.6)"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>& GIFTS</text>
+
+        {/* ── Route ────────────────────────────────────────────────────────── */}
         <AnimatedPath tableNum={selectedTable} />
 
-        {/* Tables */}
+        {/* ── Tables ───────────────────────────────────────────────────────── */}
         {(Object.entries(TABLE_POS) as [string, Pt][]).map(([ns, pos]) => {
           const n = +ns;
           return <TablePin key={n} n={n} pos={pos} selected={n === selectedTable} />;
         })}
 
-        {/* Entrance — Google Maps blue-dot style */}
+        {/* ── Entrance dot — left wall ─────────────────────────────────────── */}
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={16}
           fill="rgba(52,168,83,0.28)" className="entr-ring" />
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={9.5} fill="white"
           style={{ filter: "drop-shadow(0 1px 5px rgba(0,0,0,0.25))" }} />
-        <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={7.5}
-          fill="url(#entrDot)"
+        <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={7.5} fill="url(#entrDot)"
           style={{ filter: "drop-shadow(0 0 6px rgba(52,168,83,0.8))" }} />
         <circle cx={ENTRANCE.x} cy={ENTRANCE.y} r={2.8} fill="white" />
-        <text x={ENTRANCE.x - 28} y={ENTRANCE.y - 16}
+        <text x={ENTRANCE.x + 44} y={ENTRANCE.y - 14}
           textAnchor="middle" dominantBaseline="middle"
           fontSize="6" fontWeight="800" fill="#15803d"
           fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>
           YOU ARE HERE
         </text>
-        <line x1={ENTRANCE.x - 18} y1={ENTRANCE.y - 11}
-              x2={ENTRANCE.x - 9}  y2={ENTRANCE.y - 4}
+        <line x1={ENTRANCE.x + 20} y1={ENTRANCE.y - 9}
+              x2={ENTRANCE.x + 10} y2={ENTRANCE.y - 3}
           stroke="#15803d" strokeWidth="0.9" strokeOpacity="0.5" />
+        <text x={ENTRANCE.x + 20} y={ENTRANCE.y + 15}
+          textAnchor="start" dominantBaseline="middle"
+          fontSize="6" fontWeight="700" fill="#15803d"
+          fontFamily="'Lato', sans-serif" style={{ userSelect: "none" }}>
+          ↗ ENTRY 1
+        </text>
       </svg>
     </>
   );
